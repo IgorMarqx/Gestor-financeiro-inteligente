@@ -10,6 +10,10 @@ Route::middleware(['api', EncryptCookies::class, AddQueuedCookiesToResponse::cla
     ->post('/auth/login', [AuthController::class, 'login'])
     ->name('api.auth.login');
 
+Route::middleware(['api', EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class])
+    ->post('/auth/logout', [AuthController::class, 'logout'])
+    ->name('api.auth.logout');
+
 Route::middleware([
     'api',
     EncryptCookies::class,
@@ -18,9 +22,11 @@ Route::middleware([
     'jwt.auth',
 ])->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me'])->name('api.auth.me');
-    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
 
     require __DIR__.'/gastos.php';
     require __DIR__.'/categorias-gastos.php';
+    require __DIR__.'/gastos-recorrentes.php';
+    require __DIR__.'/gastos-parcelamentos.php';
+    require __DIR__.'/orcamentos-categorias.php';
 });
  
