@@ -98,47 +98,75 @@ export function ParcelasHistory({ inicio, fim }: Props) {
                         {resumo.pendentes}
                     </p>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
+                <CardContent className="p-0">
                     {errorMessage ? <AlertToast title="Erro" description={errorMessage} /> : null}
 
                     {isLoading ? (
-                        <p className="text-muted-foreground text-sm">Carregando...</p>
+                        <div className="p-4 pt-0">
+                            <p className="text-muted-foreground text-sm">Carregando...</p>
+                        </div>
                     ) : itens.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">Nenhuma parcela no período.</p>
+                        <div className="p-4 pt-0">
+                            <p className="text-muted-foreground text-sm">
+                                Nenhuma parcela no período.
+                            </p>
+                        </div>
                     ) : (
-                        <div className="space-y-2">
-                            {itens.map((p) => (
-                                <div
-                                    key={p.id}
-                                    className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
-                                >
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold">
-                                            {p.parcelamento?.nome ?? `Parcelamento #${p.parcelamento_id}`}
-                                        </p>
-                                        <p className="text-muted-foreground text-xs">
-                                            {p.parcelamento?.categoria?.nome
-                                                ? `${p.parcelamento.categoria.nome} • `
-                                                : ''}
-                                            Parcela {p.numero_parcela}/{p.parcelamento?.parcelas_total ?? '-'} •
-                                            Vencimento {p.vencimento}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                        <div className="text-right">
-                                            <p className="text-sm font-semibold">
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/50 text-muted-foreground">
+                                    <tr className="border-b">
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Vencimento
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Parcelamento
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Parcela
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">Status</th>
+                                        <th className="px-4 py-3 text-right font-medium">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {itens.map((p) => (
+                                        <tr key={p.id} className="border-b last:border-b-0">
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                {p.vencimento}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium">
+                                                        {p.parcelamento?.nome ??
+                                                            `Parcelamento #${p.parcelamento_id}`}
+                                                    </p>
+                                                    {p.parcelamento?.categoria?.nome ? (
+                                                        <p className="text-muted-foreground text-xs">
+                                                            {p.parcelamento.categoria.nome}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                {p.numero_parcela}/
+                                                {p.parcelamento?.parcelas_total ?? '-'}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                {statusBadge(p.status)}
+                                            </td>
+                                            <td className="px-4 py-3 text-right whitespace-nowrap font-semibold">
                                                 R$ {Number(p.valor).toFixed(2).replace('.', ',')}
-                                            </p>
-                                            <div className="mt-1">{statusBadge(p.status)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
 
                     {data?.paginacao ? (
-                        <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-center justify-between p-4">
                             <p className="text-muted-foreground text-xs">
                                 Página {data.paginacao.pagina_atual} de {data.paginacao.ultima_pagina}
                             </p>
