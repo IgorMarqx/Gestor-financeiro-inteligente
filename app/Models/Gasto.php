@@ -18,12 +18,19 @@ class Gasto extends Model
         'valor',
         'data',
         'descricao',
+        'metodo_pagamento',
+        'tipo',
+        'necessidade',
         'categoria_gasto_id',
+        'origem_id',
+        'origem_tipo',
+        'deletado_em',
     ];
 
     protected $casts = [
         'valor' => 'decimal:2',
         'data' => 'date:Y-m-d',
+        'deletado_em' => 'datetime',
     ];
 
     public function categoria(): BelongsTo
@@ -31,4 +38,3 @@ class Gasto extends Model
         return $this->belongsTo(CategoriaGasto::class, 'categoria_gasto_id');
     }
 }
-
