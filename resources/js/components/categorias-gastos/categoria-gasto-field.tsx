@@ -36,7 +36,7 @@ export function CategoriaGastoField({ value, onChange }: Props) {
             const data = await loadCategorias(query);
             return data.map((c) => ({ value: String(c.id), label: c.nome }));
         },
-        [],
+        [loadCategorias],
     );
 
     const onCreate = async () => {
