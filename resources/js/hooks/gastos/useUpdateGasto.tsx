@@ -1,5 +1,6 @@
 import { http, isApiError } from '@/lib/http';
 import { ApiGasto } from '@/types/ApiGasto';
+import { ApiResponse } from '@/types/ApiResponse';
 import { useState } from 'react';
 
 export type UpdateGastoPayload = {
@@ -8,6 +9,9 @@ export type UpdateGastoPayload = {
     data: string;
     descricao: string | null;
     categoria_gasto_id: number;
+    metodo_pagamento?: 'DEBITO' | 'CREDITO' | 'PIX' | 'DINHEIRO' | null;
+    tipo?: 'FIXO' | 'VARIAVEL' | null;
+    necessidade?: 'ESSENCIAL' | 'SUPERFLUO' | null;
 };
 
 export function useUpdateGasto() {
@@ -22,7 +26,7 @@ export function useUpdateGasto() {
         setErrorMessage(null);
 
         try {
-            const response = await http.put<{ data: ApiGasto }>(`/gastos/${id}`, payload);
+            const response = await http.put<ApiResponse<ApiGasto>>(`/gastos/${id}`, payload);
             return response.data.data;
         } catch (error) {
             if (isApiError(error)) {
@@ -41,4 +45,3 @@ export function useUpdateGasto() {
 
     return { updateGasto, isSubmitting, errorMessage };
 }
-
