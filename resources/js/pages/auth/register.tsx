@@ -13,10 +13,10 @@ import AuthLayout from '@/layouts/auth-layout';
 export default function Register() {
     return (
         <AuthLayout
-            title="Create an account"
-            description="Enter your details below to create your account"
+            title="Crie sua conta"
+            description="Insira seus dados abaixo para criar sua conta"
         >
-            <Head title="Register" />
+            <Head title="Registro" />
             <Form
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
@@ -27,7 +27,7 @@ export default function Register() {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">Nome</Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -36,7 +36,7 @@ export default function Register() {
                                     tabIndex={1}
                                     autoComplete="name"
                                     name="name"
-                                    placeholder="Full name"
+                                    placeholder="Nome completo"
                                 />
                                 <InputError
                                     message={errors.name}
@@ -45,7 +45,7 @@ export default function Register() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -59,7 +59,7 @@ export default function Register() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">Senha</Label>
                                 <Input
                                     id="password"
                                     type="password"
@@ -74,7 +74,7 @@ export default function Register() {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm password
+                                    Confirmar Senha
                                 </Label>
                                 <Input
                                     id="password_confirmation"
@@ -92,19 +92,18 @@ export default function Register() {
 
                             <Button
                                 type="submit"
-                                className="mt-2 w-full"
+                                className="mt-2 h-11 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-200/70 transition hover:from-emerald-600 hover:to-emerald-700 focus-visible:ring-emerald-300 disabled:opacity-70 cursor-pointer"
                                 tabIndex={5}
-                                data-test="register-user-button"
-                            >
+                                data-test="register-user-button">
                                 {processing && <Spinner />}
-                                Create account
+                                Criar Conta
                             </Button>
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                Log in
+                            Já tem uma conta?{' '}
+                            <TextLink className="font-semibold text-emerald-700 hover:text-emerald-800" href={login()} tabIndex={6}>
+                                Logar
                             </TextLink>
                         </div>
                     </>
