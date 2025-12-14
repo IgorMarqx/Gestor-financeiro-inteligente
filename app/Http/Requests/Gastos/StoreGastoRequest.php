@@ -21,6 +21,9 @@ class StoreGastoRequest extends FormRequest
             'valor' => ['required', 'numeric', 'min:0'],
             'data' => ['required', 'date'],
             'descricao' => ['nullable', 'string'],
+            'metodo_pagamento' => ['nullable', Rule::in(['DEBITO', 'CREDITO', 'PIX', 'DINHEIRO'])],
+            'tipo' => ['nullable', Rule::in(['FIXO', 'VARIAVEL'])],
+            'necessidade' => ['nullable', Rule::in(['ESSENCIAL', 'SUPERFLUO'])],
             'categoria_gasto_id' => [
                 'required',
                 'integer',
