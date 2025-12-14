@@ -1,5 +1,6 @@
 import { http, isApiError } from '@/lib/http';
 import { ApiCategoriaGasto } from '@/types/ApiCategoriaGasto';
+import { ApiResponse } from '@/types/ApiResponse';
 import { useState } from 'react';
 
 type CreateCategoriaPayload = { nome: string };
@@ -13,7 +14,7 @@ export function useCreateCategoriaGasto() {
         setErrorMessage(null);
 
         try {
-            const response = await http.post<{ data: ApiCategoriaGasto }>(
+            const response = await http.post<ApiResponse<ApiCategoriaGasto>>(
                 '/categorias-gastos',
                 payload,
             );
@@ -35,4 +36,3 @@ export function useCreateCategoriaGasto() {
 
     return { createCategoria, isSubmitting, errorMessage };
 }
-
