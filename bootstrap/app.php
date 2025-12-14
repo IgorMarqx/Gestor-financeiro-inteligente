@@ -7,6 +7,9 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,5 +32,32 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro de validação.',
+                'data' => null,
+                'errors' => $e->errors(),
+            ], 422);
+        });
+
+        $exceptions->render(function (AuthenticationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não autenticado.',
+                'data' => null,
+                'errors' => null,
+            ], 401);
+        });
+
+        $exceptions->render(function (NotFoundHttpException $e) {
+            if (! request()->is('api/*')) return null;
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Rota não encontrada.',
+                'data' => null,
+                'errors' => null,
+            ], 404);
+        });
     })->create();
