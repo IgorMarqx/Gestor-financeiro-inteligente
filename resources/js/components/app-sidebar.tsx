@@ -10,10 +10,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, logout } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { LayoutGrid, LogOut, Receipt, Tags } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -24,16 +24,24 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
+const controleNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
+        title: 'Gastos',
+        href: '/gastos',
+        icon: Receipt,
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Categorias',
+        href: '/categorias',
+        icon: Tags,
+    },
+];
+
+const footerNavItems: NavItem[] = [
+    {
+        title: 'Sair',
+        href: logout(),
+        icon: LogOut,
     },
 ];
 
@@ -53,7 +61,8 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} title='Principal' />
+                <NavMain items={controleNavItems} title='Controle' />
             </SidebarContent>
 
             <SidebarFooter>
