@@ -10,12 +10,14 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -42,12 +44,20 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthenticationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Não autenticado.',
-                'data' => null,
-                'errors' => null,
-            ], 401);
+            if (request()->is('api/*') || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não autenticado.',
+                    'data' => null,
+                    'errors' => null,
+                ], 401);
+            }
+
+            Auth::guard('web')->logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect('/login');
         });
 
         $exceptions->render(function (NotFoundHttpException $e) {
