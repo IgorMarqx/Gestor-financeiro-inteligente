@@ -71,6 +71,8 @@ export default function GastosIndex() {
     const mes = useMemo(() => filters.inicio.slice(0, 7), [filters.inicio]);
     const { resumo: orcamentosResumo } = useOrcamentos(mes);
     const [activeTab, setActiveTab] = useState<'gastos' | 'parcelas'>('gastos');
+    const [parcelasStatus, setParcelasStatus] = useState<'PENDENTE' | 'GERADO' | 'PAGO' | ''>('');
+
     const totalPeriodoNumber = useMemo(() => Number(data?.total_periodo ?? 0), [data?.total_periodo]);
     const media3Meses = useMemo(() => totalPeriodoNumber / 3, [totalPeriodoNumber]);
     const periodLabel = useMemo(() => {
@@ -105,7 +107,11 @@ export default function GastosIndex() {
                     filters={filters}
                     categorias={categorias}
                     onChange={(patch) => setFilters((f) => ({ ...f, ...patch }))}
+                    showStatus={activeTab === 'parcelas'}
+                    status={parcelasStatus}
+                    onStatusChange={setParcelasStatus}
                 />
+
 
                 <div className="flex items-center justify-between">
                     <ToggleGroup
@@ -136,7 +142,11 @@ export default function GastosIndex() {
                         />
                     </>
                 ) : (
-                    <ParcelasHistory inicio={filters.inicio} fim={filters.fim} />
+                    <ParcelasHistory
+                        inicio={filters.inicio}
+                        fim={filters.fim}
+                        status={parcelasStatus}
+                    />
                 )}
 
                 {data?.paginacao ? (
