@@ -1,5 +1,6 @@
 import { http, isApiError } from '@/lib/http';
 import { ApiGasto } from '@/types/ApiGasto';
+import { ApiResponse } from '@/types/ApiResponse';
 import { type CreateGastoPayload } from '@/types/CreateGasto';
 import { useState } from 'react';
 
@@ -12,7 +13,7 @@ export function useCreateGastos() {
         setErrorMessage(null);
 
         try {
-            const response = await http.post<{ data: ApiGasto }>('/gastos', payload);
+            const response = await http.post<ApiResponse<ApiGasto>>('/gastos', payload);
             return response.data.data;
         } catch (error) {
             if (isApiError(error)) {
