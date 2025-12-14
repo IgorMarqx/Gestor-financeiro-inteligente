@@ -1,5 +1,6 @@
 import { http, isApiError } from '@/lib/http';
 import { ApiCategoriaGasto } from '@/types/ApiCategoriaGasto';
+import { ApiResponse } from '@/types/ApiResponse';
 import { useState } from 'react';
 
 export function useGetCategoriasGastos() {
@@ -12,7 +13,7 @@ export function useGetCategoriasGastos() {
         setErrorMessage(null);
 
         try {
-            const response = await http.get<{ data: ApiCategoriaGasto[] }>('/categorias-gastos', {
+            const response = await http.get<ApiResponse<ApiCategoriaGasto[]>>('/categorias-gastos', {
                 params: query ? { q: query } : undefined,
             });
             setCategorias(response.data.data);
