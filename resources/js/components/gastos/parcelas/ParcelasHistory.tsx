@@ -2,24 +2,27 @@ import { AlertToast } from '@/components/gastos/painel/AlertToast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useParcelasHistory } from '@/hooks/gastos-parcelamentos/useParcelasHistory';
+import { type ParcelasFilters } from '@/hooks/gastos-parcelamentos/useParcelasHistory';
+import { type ApiGastoParcela } from '@/types/ApiGastoParcela';
 import { useMemo } from 'react';
 
 type Props = {
-    inicio: string;
-    fim: string;
-    status?: 'PENDENTE' | 'GERADO' | 'PAGO' | '';
+    filters: ParcelasFilters;
+    setFilters: React.Dispatch<React.SetStateAction<ParcelasFilters>>;
+    data: {
+        itens: ApiGastoParcela[];
+        paginacao: {
+            pagina_atual: number;
+            por_pagina: number;
+            total: number;
+            ultima_pagina: number;
+        };
+    } | null;
+    isLoading: boolean;
+    errorMessage: string | null;
 };
 
-export function ParcelasHistory({ inicio, fim, status }: Props) {
-    const { filters, setFilters, data, isLoading, errorMessage } = useParcelasHistory({
-        inicio,
-        fim,
-        status: status ?? '',
-        page: 1,
-        per_page: 15,
-    });
-
+export function ParcelasHistory({ filters, setFilters, data, isLoading, errorMessage }: Props) {
     const itens = useMemo(() => data?.itens ?? [], [data?.itens]);
 
     const statusBadge = (status: 'PENDENTE' | 'GERADO' | 'PAGO') => {
