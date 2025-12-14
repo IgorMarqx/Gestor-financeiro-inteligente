@@ -7,6 +7,7 @@ import {
     isApiError,
     setAuthToken,
 } from '@/lib/http';
+import { ApiResponse } from '@/types/ApiResponse';
 
 export interface LoginPayload {
     email: string;
@@ -39,21 +40,21 @@ export const useAuth = () => {
             setMessage(null);
 
             try {
-                const response = await http.post<{
-                    message?: string;
-                    token: string;
-                    user: User;
-                }>('/auth/login', payload);
+                const response = await http.post<ApiResponse<{ token: string; user: User }>>(
+                    '/auth/login',
+                    payload,
+                );
 
-                const data = response.data;
+                const tokenValue = response.data.data.token;
+                const userValue = response.data.data.user;
 
-                setUser(data.user);
-                setToken(data.token);
-                setMessage(data?.message ?? null);
+                setUser(userValue);
+                setToken(tokenValue);
+                setMessage(response.data.message ?? null);
                 setFeedbackType('success');
-                setAuthToken(data.token);
+                setAuthToken(tokenValue);
 
-                return { ok: true, user: data.user, token: data.token };
+                return { ok: true, user: userValue, token: tokenValue };
             } catch (error) {
                 if (isApiError(error)) {
                     const apiErrors = error.response?.data?.errors ?? {};
@@ -92,7 +93,7 @@ export const useAuth = () => {
             setToken(null);
             setLoading(false);
         }
-    }, [token]);
+    }, []);
 
     const clearMessage = useCallback(() => {
         setMessage(null);
