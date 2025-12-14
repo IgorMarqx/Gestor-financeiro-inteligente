@@ -37,7 +37,12 @@ export type GastosIndexData = {
 
 const defaultPerPage = 15;
 
-export function useGastos(initialFilters: GastosFilters) {
+type UseGastosOptions = {
+    enabled?: boolean;
+};
+
+export function useGastos(initialFilters: GastosFilters, options: UseGastosOptions = {}) {
+    const enabled = options.enabled ?? true;
     const [filters, setFilters] = useState<GastosFilters>({
         ...initialFilters,
         per_page: initialFilters.per_page ?? defaultPerPage,
@@ -67,6 +72,7 @@ export function useGastos(initialFilters: GastosFilters) {
     }, [effectiveFilters]);
 
     const load = async (): Promise<void> => {
+        if (!enabled) return;
         setIsLoading(true);
         setErrorMessage(null);
 
@@ -87,8 +93,9 @@ export function useGastos(initialFilters: GastosFilters) {
     };
 
     useEffect(() => {
+        if (!enabled) return;
         void load();
-    }, [effectiveFilters.inicio, effectiveFilters.fim, effectiveFilters.categoria_gasto_id, effectiveFilters.valor_min, effectiveFilters.valor_max, effectiveFilters.q, effectiveFilters.somente_recorrentes, effectiveFilters.somente_parcelados, effectiveFilters.order_by, effectiveFilters.order_dir, effectiveFilters.page, effectiveFilters.per_page]);
+    }, [enabled, effectiveFilters.inicio, effectiveFilters.fim, effectiveFilters.categoria_gasto_id, effectiveFilters.valor_min, effectiveFilters.valor_max, effectiveFilters.q, effectiveFilters.somente_recorrentes, effectiveFilters.somente_parcelados, effectiveFilters.order_by, effectiveFilters.order_dir, effectiveFilters.page, effectiveFilters.per_page]);
 
     return { filters, setFilters, data, isLoading, errorMessage, reload: load };
 }
