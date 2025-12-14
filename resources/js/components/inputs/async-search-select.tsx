@@ -49,8 +49,11 @@ export function AsyncSearchSelect({
         if (!open) return;
 
         let isCancelled = false;
-        setIsLoading(true);
-        setErrorMessage(null);
+        queueMicrotask(() => {
+            if (isCancelled) return;
+            setIsLoading(true);
+            setErrorMessage(null);
+        });
 
         void loadOptions(query)
             .then((data) => {
@@ -171,4 +174,3 @@ export function AsyncSearchSelect({
         </Dialog>
     );
 }
-
