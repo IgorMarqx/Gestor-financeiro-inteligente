@@ -56,19 +56,5 @@ export function useParcelasHistory(initial: ParcelasFilters) {
         }
     };
 
-    useEffect(() => {
-        void load();
-    }, []);
-
-    useEffect(() => {
-        setFilters((f) => ({
-            ...f,
-            inicio: initial.inicio,
-            fim: initial.fim,
-            status: initial.status,
-            page: 1,
-        }));
-    }, [initial.inicio, initial.fim, initial.status]);
-
     return { filters, setFilters, data, isLoading, errorMessage, reload: load };
 }
