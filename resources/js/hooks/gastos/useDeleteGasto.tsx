@@ -26,4 +26,3 @@ export function useDeleteGasto() {
 
     return { deleteGasto, isSubmitting, errorMessage };
 }
-
