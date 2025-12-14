@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 type Props = {
     filters: Filters;
-    categorias: ApiCategoriaGasto[];
+    categorias?: ApiCategoriaGasto[];
     onChange: (patch: Partial<Filters>) => void;
     showStatus?: boolean;
     status?: 'PENDENTE' | 'GERADO' | 'PAGO' | '';
@@ -78,7 +78,7 @@ export function GastosFilters({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todas</SelectItem>
-                            {categorias.map((c) => (
+                            {(categorias ?? []).map((c) => (
                                 <SelectItem key={c.id} value={String(c.id)}>
                                     {c.nome}
                                 </SelectItem>
