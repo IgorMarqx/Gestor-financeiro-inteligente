@@ -16,9 +16,19 @@ type Props = {
     filters: Filters;
     categorias: ApiCategoriaGasto[];
     onChange: (patch: Partial<Filters>) => void;
+    showStatus?: boolean;
+    status?: 'PENDENTE' | 'GERADO' | 'PAGO' | '';
+    onStatusChange?: (status: 'PENDENTE' | 'GERADO' | 'PAGO' | '') => void;
 };
 
-export function GastosFilters({ filters, categorias, onChange }: Props) {
+export function GastosFilters({
+    filters,
+    categorias,
+    onChange,
+    showStatus,
+    status,
+    onStatusChange,
+}: Props) {
     const [draft, setDraft] = useState<Filters>(filters);
 
     useEffect(() => {
@@ -35,7 +45,7 @@ export function GastosFilters({ filters, categorias, onChange }: Props) {
 
     return (
         <div className="rounded-lg border bg-card p-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="space-y-1">
                     <Label>Início</Label>
                     <Input
@@ -76,7 +86,33 @@ export function GastosFilters({ filters, categorias, onChange }: Props) {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex items-end justify-end">
+                {showStatus ? (
+                    <div className="space-y-1">
+                        <Label>Status</Label>
+                        <Select
+                            value={status || 'all'}
+                            onValueChange={(v) =>
+                                onStatusChange?.(
+                                    v === 'all'
+                                        ? ''
+                                        : (v as 'PENDENTE' | 'GERADO' | 'PAGO'),
+                                )
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                                <SelectItem value="GERADO">GERADO</SelectItem>
+                                <SelectItem value="PAGO">PAGO</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                ) : null}
+
+                <div className="flex items-end justify-start">
                     <Button type="button" onClick={apply} disabled={!canApply} className="w-full sm:w-auto">
                         Filtrar
                     </Button>
