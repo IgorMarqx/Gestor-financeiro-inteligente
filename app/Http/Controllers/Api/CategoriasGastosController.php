@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\CategoriasGastos\StoreCategoriaGastoRequest;
 use App\Services\CategoriasGastosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class CategoriasGastosController extends Controller
+class CategoriasGastosController extends ApiController
 {
     public function __construct(private readonly CategoriasGastosService $categoriasGastosService) {}
 
@@ -17,9 +16,10 @@ class CategoriasGastosController extends Controller
         $userId = (int) $request->user()->id;
         $query = (string) $request->query('q', '');
 
-        return response()->json([
-            'data' => $this->categoriasGastosService->list($userId, $query),
-        ]);
+        return $this->apiSuccess(
+            data: $this->categoriasGastosService->list($userId, $query),
+            message: 'OK',
+        );
     }
 
     public function store(StoreCategoriaGastoRequest $request): JsonResponse
@@ -27,10 +27,6 @@ class CategoriasGastosController extends Controller
         $userId = (int) $request->user()->id;
         $categoria = $this->categoriasGastosService->create($userId, $request->validated());
 
-        return response()->json([
-            'message' => 'Categoria criada com sucesso.',
-            'data' => $categoria,
-        ], 201);
+        return $this->apiSuccess($categoria, 'Categoria criada com sucesso.', 201);
     }
 }
-
