@@ -2,28 +2,20 @@ import { AlertToast } from '@/components/gastos/painel/AlertToast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useParcelasHistory } from '@/hooks/gastos-parcelamentos/useParcelasHistory';
 import { useMemo } from 'react';
 
 type Props = {
     inicio: string;
     fim: string;
+    status?: 'PENDENTE' | 'GERADO' | 'PAGO' | '';
 };
 
-export function ParcelasHistory({ inicio, fim }: Props) {
+export function ParcelasHistory({ inicio, fim, status }: Props) {
     const { filters, setFilters, data, isLoading, errorMessage } = useParcelasHistory({
         inicio,
         fim,
-        status: '',
+        status: status ?? '',
         page: 1,
         per_page: 15,
     });
@@ -44,52 +36,6 @@ export function ParcelasHistory({ inicio, fim }: Props) {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 rounded-lg border bg-card p-4 sm:grid-cols-3">
-                <div className="space-y-1">
-                    <Label>Início</Label>
-                    <Input
-                        type="date"
-                        value={filters.inicio}
-                        onChange={(e) =>
-                            setFilters((f) => ({ ...f, inicio: e.target.value, page: 1 }))
-                        }
-                    />
-                </div>
-                <div className="space-y-1">
-                    <Label>Fim</Label>
-                    <Input
-                        type="date"
-                        value={filters.fim}
-                        onChange={(e) =>
-                            setFilters((f) => ({ ...f, fim: e.target.value, page: 1 }))
-                        }
-                    />
-                </div>
-                <div className="space-y-1">
-                    <Label>Status</Label>
-                    <Select
-                        value={filters.status || 'all'}
-                        onValueChange={(v) =>
-                            setFilters((f) => ({
-                                ...f,
-                                status: v === 'all' ? '' : (v as 'PENDENTE' | 'GERADO' | 'PAGO'),
-                                page: 1,
-                            }))
-                        }
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Todos" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="PENDENTE">PENDENTE</SelectItem>
-                            <SelectItem value="GERADO">GERADO</SelectItem>
-                            <SelectItem value="PAGO">PAGO</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base">Histórico de parcelas</CardTitle>
