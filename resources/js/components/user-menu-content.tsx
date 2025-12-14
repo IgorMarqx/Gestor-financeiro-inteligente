@@ -35,7 +35,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                     <Link
-                        className="block w-full"
+                        className="block w-full cursor-pointer"
                         href={edit()}
                         as="button"
                         prefetch
@@ -49,14 +49,14 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
                 <Link
-                    className="block w-full"
+                    className="block w-full cursor-pointer"
                     href={logout()}
                     as="button"
                     onClick={handleLogout}
                     data-test="logout-button"
                 >
                     <LogOut className="mr-2" />
-                    Log out
+                    Sair
                 </Link>
             </DropdownMenuItem>
         </>
