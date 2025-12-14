@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Support\Str;
 
 class JwtService
 {
@@ -82,6 +83,15 @@ class JwtService
 
     private function secret(): string
     {
-        return config('jwt.secret', config('app.key'));
+        $secret = config('jwt.secret', config('app.key'));
+
+        if (is_string($secret) && Str::startsWith($secret, 'base64:')) {
+            $decoded = base64_decode(substr($secret, 7), true);
+            if ($decoded !== false) {
+                return $decoded;
+            }
+        }
+
+        return (string) $secret;
     }
 }
