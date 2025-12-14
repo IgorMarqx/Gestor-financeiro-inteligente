@@ -2,24 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Http\Requests\Gastos\IndexGastosRequest;
 use App\Http\Requests\Gastos\StoreGastoRequest;
 use App\Http\Requests\Gastos\UpdateGastoRequest;
+use App\Http\Requests\Gastos\ValidarGastoRequest;
 use App\Services\GastosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class GastosController extends Controller
+class GastosController extends ApiController
 {
     public function __construct(private readonly GastosService $gastosService) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexGastosRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
 
-        return response()->json([
-            'data' => $this->gastosService->list($userId),
-        ]);
+        return $this->apiSuccess(
+            data: $this->gastosService->listWithSummary($userId, $request->validated()),
+            message: 'OK',
+        );
     }
 
     public function store(StoreGastoRequest $request): JsonResponse
@@ -27,10 +29,7 @@ class GastosController extends Controller
         $userId = (int) $request->user()->id;
         $gasto = $this->gastosService->create($userId, $request->validated());
 
-        return response()->json([
-            'message' => 'Gasto criado com sucesso.',
-            'data' => $gasto,
-        ], 201);
+        return $this->apiSuccess($gasto, 'Gasto criado com sucesso.', 201);
     }
 
     public function update(UpdateGastoRequest $request, int $gasto): JsonResponse
@@ -39,13 +38,10 @@ class GastosController extends Controller
         $updated = $this->gastosService->update($userId, $gasto, $request->validated());
 
         if (! $updated) {
-            return response()->json(['message' => 'Gasto não encontrado.'], 404);
+            return $this->apiError('Gasto não encontrado.', null, 404);
         }
 
-        return response()->json([
-            'message' => 'Gasto atualizado com sucesso.',
-            'data' => $updated,
-        ]);
+        return $this->apiSuccess($updated, 'Gasto atualizado com sucesso.');
     }
 
     public function destroy(Request $request, int $gasto): JsonResponse
@@ -53,11 +49,19 @@ class GastosController extends Controller
         $userId = (int) $request->user()->id;
 
         if (! $this->gastosService->delete($userId, $gasto)) {
-            return response()->json(['message' => 'Gasto não encontrado.'], 404);
+            return $this->apiError('Gasto não encontrado.', null, 404);
         }
 
-        return response()->json([
-            'message' => 'Gasto removido com sucesso.',
-        ]);
+        return $this->apiSuccess(null, 'Gasto removido com sucesso.');
+    }
+
+    public function validar(ValidarGastoRequest $request): JsonResponse
+    {
+        $userId = (int) $request->user()->id;
+
+        return $this->apiSuccess(
+            data: $this->gastosService->validar($userId, $request->validated()),
+            message: 'OK',
+        );
     }
 }
