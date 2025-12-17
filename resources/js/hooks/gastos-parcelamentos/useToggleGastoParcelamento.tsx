@@ -2,10 +2,12 @@ import { http, isApiError } from '@/lib/http';
 import { ApiResponse } from '@/types/ApiResponse';
 import { ApiGastoParcelamento } from '@/types/ApiGastoParcelamento';
 import { useState } from 'react';
+import { useNotifications } from '@/components/notifications/notifications';
 
 export function useToggleGastoParcelamento() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const notifications = useNotifications();
 
     const setAtivo = async (
         id: number,
@@ -17,14 +19,23 @@ export function useToggleGastoParcelamento() {
             const response = await http.post<ApiResponse<ApiGastoParcelamento>>(
                 `/gastos-parcelamentos/${id}/${ativo ? 'ativar' : 'pausar'}`,
             );
+            notifications.success(
+                'Parcelamento atualizado',
+                ativo ? 'Parcelamento ativado.' : 'Parcelamento pausado.',
+            );
             return response.data.data;
         } catch (error) {
             if (isApiError(error)) {
-                setErrorMessage(
-                    error.response?.data?.message ?? 'Erro ao atualizar parcelamento.',
-                );
+                const message =
+                    error.response?.data?.message ?? 'Erro ao atualizar parcelamento.';
+                setErrorMessage(message);
+                notifications.error('Não foi possível atualizar o parcelamento', message);
             } else {
                 setErrorMessage('Erro ao atualizar parcelamento.');
+                notifications.error(
+                    'Não foi possível atualizar o parcelamento',
+                    'Erro ao atualizar parcelamento.',
+                );
             }
             return null;
         } finally {
@@ -34,4 +45,3 @@ export function useToggleGastoParcelamento() {
 
     return { setAtivo, isSubmitting, errorMessage };
 }
-
