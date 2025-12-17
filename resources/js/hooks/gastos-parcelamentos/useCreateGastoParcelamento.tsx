@@ -2,6 +2,7 @@ import { http, isApiError } from '@/lib/http';
 import { ApiResponse } from '@/types/ApiResponse';
 import { ApiGastoParcelamento } from '@/types/ApiGastoParcelamento';
 import { useState } from 'react';
+import { useNotifications } from '@/components/notifications/notifications';
 
 export type CreateGastoParcelamentoPayload = {
     categoria_gasto_id: number;
@@ -18,6 +19,7 @@ export type CreateGastoParcelamentoPayload = {
 export function useCreateGastoParcelamento() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const notifications = useNotifications();
 
     const create = async (
         payload: CreateGastoParcelamentoPayload,
@@ -29,15 +31,22 @@ export function useCreateGastoParcelamento() {
                 '/gastos-parcelamentos',
                 payload,
             );
+            notifications.success('Parcelamento criado', 'Parcelamento salvo com sucesso.');
             return response.data.data;
         } catch (error) {
             if (isApiError(error)) {
                 const apiMessage = error.response?.data?.message;
                 const apiErrors = error.response?.data?.errors;
                 const firstFieldError = apiErrors ? Object.values(apiErrors)[0]?.[0] : null;
-                setErrorMessage(firstFieldError ?? apiMessage ?? 'Erro ao criar parcelamento.');
+                const message = firstFieldError ?? apiMessage ?? 'Erro ao criar parcelamento.';
+                setErrorMessage(message);
+                notifications.error('Não foi possível criar o parcelamento', message);
             } else {
                 setErrorMessage('Erro ao criar parcelamento.');
+                notifications.error(
+                    'Não foi possível criar o parcelamento',
+                    'Erro ao criar parcelamento.',
+                );
             }
             return null;
         } finally {
@@ -47,4 +56,3 @@ export function useCreateGastoParcelamento() {
 
     return { create, isSubmitting, errorMessage };
 }
-
