@@ -1,17 +1,33 @@
 import { Sparkles } from 'lucide-react';
 import { type ApiChat } from '@/types/ApiChat';
-import { type ApiChatMensagem } from '@/types/ApiChatMensagem';
+
+export type ChatUiMessage = {
+    id: number | string;
+    role: 'system' | 'user' | 'assistant';
+    conteudo: string;
+    isTyping?: boolean;
+};
 
 type Props = {
     activeChat: ApiChat | null;
     activeChatId: number | null;
-    messages: ApiChatMensagem[];
+    messages: ChatUiMessage[];
     draft: string;
     isSending: boolean;
     onDraftChange: (value: string) => void;
     onSend: () => void;
     onSendFromEnter: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 };
+
+function TypingDots() {
+    return (
+        <div className="flex items-center gap-1">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-0.2s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-0.1s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/60" />
+        </div>
+    );
+}
 
 export function ChatConversationPanel({
     activeChat,
@@ -84,7 +100,7 @@ export function ChatConversationPanel({
                                             : 'rounded-2xl rounded-tl-md border bg-card',
                                     ].join(' ')}
                                 >
-                                    {m.conteudo}
+                                    {m.isTyping ? <TypingDots /> : m.conteudo}
                                 </div>
                             </div>
                         );
@@ -115,4 +131,3 @@ export function ChatConversationPanel({
         </section>
     );
 }
-
