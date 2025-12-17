@@ -13,7 +13,7 @@ import {
 import { dashboard, logout } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, LogOut, Receipt, Sparkles, Tags } from 'lucide-react';
+import { LayoutGrid, LogOut, Receipt, Tags } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -34,11 +34,6 @@ const controleNavItems: NavItem[] = [
         title: 'Categorias',
         href: '/categorias',
         icon: Tags,
-    },
-    {
-        title: 'Chat',
-        href: '/chat',
-        icon: Sparkles,
     },
 ];
 
