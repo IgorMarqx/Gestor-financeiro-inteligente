@@ -28,6 +28,5 @@ Route::middleware([
     require __DIR__.'/gastos-recorrentes.php';
     require __DIR__.'/gastos-parcelamentos.php';
     require __DIR__.'/orcamentos-categorias.php';
-    require __DIR__.'/chat.php';
 });
  
