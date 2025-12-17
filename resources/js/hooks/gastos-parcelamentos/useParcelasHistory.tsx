@@ -1,7 +1,7 @@
 import { http, isApiError } from '@/lib/http';
 import { ApiResponse } from '@/types/ApiResponse';
 import { ApiGastoParcela } from '@/types/ApiGastoParcela';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 type Paginated<T> = {
     itens: T[];
