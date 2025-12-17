@@ -8,6 +8,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type ApiChatMensagem } from '@/types/ApiChatMensagem';
 import { Head } from '@inertiajs/react';
 import { ChatConversationPanel } from '@/components/chat/chat-conversation-panel';
+import { type ChatUiMessage } from '@/components/chat/chat-conversation-panel';
 import { ChatSidebar } from '@/components/chat/chat-sidebar';
 import { MessageCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -27,7 +28,7 @@ export default function ChatPage() {
 
     const [activeChatId, setActiveChatId] = useState<number | null>(null);
     const [draft, setDraft] = useState('');
-    const [messagesByChatId, setMessagesByChatId] = useState<Record<number, ApiChatMensagem[]>>({});
+    const [messagesByChatId, setMessagesByChatId] = useState<Record<number, ChatUiMessage[]>>({});
 
     const activeChat = useMemo(
         () => (activeChatId ? chats.find((c) => c.id === activeChatId) ?? null : null),
@@ -37,6 +38,59 @@ export default function ChatPage() {
         () => (activeChatId ? messagesByChatId[activeChatId] ?? [] : []),
         [activeChatId, messagesByChatId],
     );
+
+    const upsertTitleFromPrompt = (chatId: number, currentTitle: string, prompt: string) => {
+        if (currentTitle.trim() !== 'Novo Chat') return;
+        const nextTitle = deriveChatTitleFromPrompt(prompt);
+        setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, titulo: nextTitle } : c)));
+    };
+
+    const handleSend = async () => {
+        if (!activeChatId) return;
+        const prompt = draft.trim();
+        if (!prompt) return;
+
+        const currentTitle = activeChat?.titulo ?? 'Novo Chat';
+
+        const tempUserId = `temp_user_${Date.now()}`;
+        const tempTypingId = `temp_typing_${Date.now()}`;
+
+        setDraft('');
+        setMessagesByChatId((prev) => {
+            const current = prev[activeChatId] ?? [];
+            return {
+                ...prev,
+                [activeChatId]: [
+                    ...current,
+                    { id: tempUserId, role: 'user', conteudo: prompt },
+                    { id: tempTypingId, role: 'assistant', conteudo: '', isTyping: true },
+                ],
+            };
+        });
+
+        const msgs = await sendMessage(activeChatId, prompt, currentTitle);
+        if (msgs) {
+            setMessagesByChatId((prev) => ({
+                ...prev,
+                [activeChatId]: (msgs as ApiChatMensagem[]).map((m) => ({
+                    id: m.id,
+                    role: m.role,
+                    conteudo: m.conteudo,
+                })),
+            }));
+            upsertTitleFromPrompt(activeChatId, currentTitle, prompt);
+            return;
+        }
+
+        // erro: remove somente o "digitando", mantém a mensagem do usuário.
+        setMessagesByChatId((prev) => {
+            const current = prev[activeChatId] ?? [];
+            return {
+                ...prev,
+                [activeChatId]: current.filter((m) => m.id !== tempTypingId),
+            };
+        });
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -71,7 +125,16 @@ export default function ChatPage() {
                         onSelect={async (chatId) => {
                             setActiveChatId(chatId);
                             const msgs = await getConversation(chatId);
-                            if (msgs) setMessagesByChatId((prev) => ({ ...prev, [chatId]: msgs }));
+                            if (msgs) {
+                                setMessagesByChatId((prev) => ({
+                                    ...prev,
+                                    [chatId]: msgs.map((m) => ({
+                                        id: m.id,
+                                        role: m.role,
+                                        conteudo: m.conteudo,
+                                    })),
+                                }));
+                            }
                         }}
                         onReload={() => void reload()}
                     />
@@ -87,43 +150,9 @@ export default function ChatPage() {
                             if (e.key !== 'Enter') return;
                             if (e.shiftKey) return;
                             e.preventDefault();
-                            if (!activeChatId) return;
-                            const prompt = draft.trim();
-                            if (!prompt) return;
-                            setDraft('');
-                            const currentTitle = activeChat?.titulo ?? 'Novo Chat';
-                            const msgs = await sendMessage(activeChatId, prompt, currentTitle);
-                            if (msgs) {
-                                setMessagesByChatId((prev) => ({ ...prev, [activeChatId]: msgs }));
-                            }
-                            if (currentTitle.trim() === 'Novo Chat') {
-                                const nextTitle = deriveChatTitleFromPrompt(prompt);
-                                setChats((prev) =>
-                                    prev.map((c) =>
-                                        c.id === activeChatId ? { ...c, titulo: nextTitle } : c,
-                                    ),
-                                );
-                            }
+                            await handleSend();
                         }}
-                        onSend={async () => {
-                            if (!activeChatId) return;
-                            const prompt = draft.trim();
-                            if (!prompt) return;
-                            setDraft('');
-                            const currentTitle = activeChat?.titulo ?? 'Novo Chat';
-                            const msgs = await sendMessage(activeChatId, prompt, currentTitle);
-                            if (msgs) {
-                                setMessagesByChatId((prev) => ({ ...prev, [activeChatId]: msgs }));
-                            }
-                            if (currentTitle.trim() === 'Novo Chat') {
-                                const nextTitle = deriveChatTitleFromPrompt(prompt);
-                                setChats((prev) =>
-                                    prev.map((c) =>
-                                        c.id === activeChatId ? { ...c, titulo: nextTitle } : c,
-                                    ),
-                                );
-                            }
-                        }}
+                        onSend={handleSend}
                     />
                 </div>
             </div>
