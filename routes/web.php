@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Web\WebController;
 
 Route::get('/', function () {
     return Inertia::render('welcome', [
@@ -11,17 +13,10 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
-
-    Route::get('gastos', function () {
-        return Inertia::render('gastos/index');
-    })->name('gastos.index');
-
-    Route::get('categorias', function () {
-        return Inertia::render('categorias-gastos/index');
-    })->name('categorias.index');
+    Route::get('dashboard', [WebController::class, 'dashboard'])->name('dashboard');
+    Route::get('gastos', [WebController::class, 'gastosIndex'])->name('gastos.index');
+    Route::get('categorias', [WebController::class, 'categoriasIndex'])->name('categorias.index');
+    Route::get('chat', [WebController::class, 'chatIndex'])->name('chat.index');
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';
