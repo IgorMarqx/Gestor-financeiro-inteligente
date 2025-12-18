@@ -29,5 +29,26 @@ class CategoriasGastosRepository
             ->orderBy('nome')
             ->get();
     }
-}
 
+    public function findByIdForUser(int $categoriaId, int $userId): ?CategoriaGasto
+    {
+        return CategoriaGasto::query()
+            ->select(['id', 'nome'])
+            ->where('id', $categoriaId)
+            ->where('usuario_id', $userId)
+            ->first();
+    }
+
+    public function update(CategoriaGasto $categoria, array $data): CategoriaGasto
+    {
+        $categoria->fill($data);
+        $categoria->save();
+
+        return $categoria;
+    }
+
+    public function delete(CategoriaGasto $categoria): void
+    {
+        $categoria->delete();
+    }
+}
