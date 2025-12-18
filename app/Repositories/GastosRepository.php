@@ -215,4 +215,38 @@ class GastosRepository
             ->whereDate('gastos.data', '<=', $fim)
             ->avg('gastos.valor');
     }
+
+    /**
+     * @return Collection<int, array{id:int,nome:string,valor:string,data:string}>
+     */
+    public function listResumoByUserCategoriaPeriodo(int $userId, int $categoriaId, string $inicio, string $fim, int $limit = 50): Collection
+    {
+        $limit = max(1, min(100, $limit));
+
+        return Gasto::query()
+            ->where('gastos.usuario_id', $userId)
+            ->whereNull('gastos.deletado_em')
+            ->where('gastos.categoria_gasto_id', $categoriaId)
+            ->whereDate('gastos.data', '>=', $inicio)
+            ->whereDate('gastos.data', '<=', $fim)
+            ->orderByDesc('gastos.data')
+            ->orderByDesc('gastos.id')
+            ->limit($limit)
+            ->get(['gastos.id', 'gastos.nome', 'gastos.valor', 'gastos.data'])
+            ->map(fn (Gasto $g) => [
+                'id' => (int) $g->id,
+                'nome' => (string) $g->nome,
+                'valor' => (string) $g->valor,
+                'data' => (string) $g->data?->format('Y-m-d'),
+            ]);
+    }
+
+    public function countByUserCategoria(int $userId, int $categoriaId): int
+    {
+        return (int) Gasto::query()
+            ->where('gastos.usuario_id', $userId)
+            ->whereNull('gastos.deletado_em')
+            ->where('gastos.categoria_gasto_id', $categoriaId)
+            ->count();
+    }
 }
