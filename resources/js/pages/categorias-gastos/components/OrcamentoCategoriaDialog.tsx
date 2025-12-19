@@ -163,7 +163,7 @@ export function OrcamentoCategoriaDialog(props: {
                     ) : null}
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-2 sm:gap-2">
                     {props.limiteInicial !== null ? (
                         <Button
                             type="button"
