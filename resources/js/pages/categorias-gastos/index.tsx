@@ -8,16 +8,18 @@ import { useGetGastosPorCategoria } from '@/hooks/categorias-gastos/useGetGastos
 import { useExportCategoriaGastosCsv } from '@/hooks/categorias-gastos/useExportCategoriaGastosCsv';
 import { monthToLabel, parseApiDecimal } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { CategoriasResumoCards } from '@/pages/categorias-gastos/components/CategoriasResumoCards';
 import { CategoriasResumoLista } from '@/pages/categorias-gastos/components/CategoriasResumoLista';
 import { CriarCategoriaDialog } from '@/pages/categorias-gastos/components/CriarCategoriaDialog';
+import { useCategoriasGastosRealtime } from '@/hooks/categorias-gastos/useCategoriasGastosRealtime';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Categorias', href: '/categorias' }];
 
 export default function CategoriasGastosIndex() {
+    const { auth } = usePage().props as { auth?: { user?: { id?: number | string } } };
     const { loadCategorias } = useGetCategoriasGastos();
     const {
         loadResumo,
@@ -43,6 +45,13 @@ export default function CategoriasGastosIndex() {
         const yyyy = now.getFullYear();
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         return `${yyyy}-${mm}`;
+    });
+
+    useCategoriasGastosRealtime({
+        userId: auth?.user?.id,
+        mes,
+        loadCategorias,
+        loadResumo,
     });
 
     useEffect(() => {
