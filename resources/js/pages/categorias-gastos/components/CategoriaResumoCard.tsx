@@ -12,6 +12,7 @@ import { iconForCategoria, Sparkline, statusLabel } from '@/pages/categorias-gas
 import { ApiGastoResumoItem } from '@/types/ApiGastoResumoItem';
 import { useMemo, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useExportCategoriaGastosCsv } from '@/hooks/categorias-gastos/useExportCategoriaGastosCsv';
 
 export function CategoriaResumoCard(props: {
     categoria: ApiCategoriaGastoResumo;
@@ -22,10 +23,9 @@ export function CategoriaResumoCard(props: {
     isLoadingGastos: boolean;
     errorGastos: string | null;
     maxGasto: number;
-    onExportCsv: (id: number, categoriaNome?: string) => Promise<void> | void;
     onResumoChange: () => Promise<void> | void;
-    isExportingCsv?: boolean;
 }) {
+    const { exportCsv, isExporting: isExportingCsv } = useExportCategoriaGastosCsv();
     const gasto = parseApiDecimal(props.categoria.gasto_total);
     const limite = props.categoria.orcamento_limite
         ? parseApiDecimal(props.categoria.orcamento_limite)
@@ -157,11 +157,16 @@ export function CategoriaResumoCard(props: {
                             <Button
                                 variant="outline"
                                 className="w-full sm:w-auto"
-                                onClick={() => props.onExportCsv(props.categoria.id, props.categoria.nome)}
-                                disabled={props.isExportingCsv}
+                                onClick={() =>
+                                    exportCsv(props.categoria.id, {
+                                        mes: props.mes,
+                                        categoriaNome: props.categoria.nome,
+                                    })
+                                }
+                                disabled={isExportingCsv}
                             >
                                 <Download className="mr-2 size-4" />
-                                {props.isExportingCsv ? 'Exportando...' : 'Exportar CSV do período'}
+                                {isExportingCsv ? 'Exportando...' : 'Exportar CSV do período'}
                             </Button>
                         </div>
                         <CategoriaGastosDetalhados
