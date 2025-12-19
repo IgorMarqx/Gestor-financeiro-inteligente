@@ -186,6 +186,7 @@ export function CategoriaResumoCard(props: {
                 onOpenChange={setIsBudgetOpen}
                 categoriaId={props.categoria.id}
                 mes={props.mes}
+                categoriaNome={props.categoria.nome}
                 limiteInicial={limite}
                 onSuccess={props.onResumoChange}
             />
