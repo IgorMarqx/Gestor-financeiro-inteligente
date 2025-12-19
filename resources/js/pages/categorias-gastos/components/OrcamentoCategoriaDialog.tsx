@@ -22,6 +22,7 @@ export function OrcamentoCategoriaDialog(props: {
     categoriaId: number;
     mes: string; // YYYY-MM
     limiteInicial: number | null;
+    categoriaNome: string;
     onSuccess?: () => Promise<void> | void;
 }) {
     const initialRaw = useMemo(() => {
@@ -208,6 +209,7 @@ export function OrcamentoCategoriaDialog(props: {
                                 categoria_gasto_id: props.categoriaId,
                                 meses: monthsToApply,
                                 limite,
+                                categoriaNome: props.categoriaNome,
                             });
                             if (!ok) return;
 
