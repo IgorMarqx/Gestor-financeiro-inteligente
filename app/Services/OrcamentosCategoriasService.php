@@ -2,11 +2,15 @@
 
 namespace App\Services;
 
+use App\Events\OrcamentoBatchEvent;
+use App\Jobs\OrcamentoBatchJob;
 use App\Models\OrcamentoCategoria;
 use App\Repositories\GastosRepository;
 use App\Repositories\OrcamentosCategoriasRepository;
 use Carbon\Carbon;
+use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 
 class OrcamentosCategoriasService
@@ -82,8 +86,9 @@ class OrcamentosCategoriasService
     public function batchUpsert(int $userId, array $payload): array
     {
         $categoriaId = (int) $payload['categoria_gasto_id'];
+        $categoriaNome = (string) $payload['categoriaNome'];
         $meses = collect($payload['meses'] ?? [])
-            ->map(fn ($m) => (string) $m)
+            ->map(fn($m) => (string) $m)
             ->filter()
             ->unique()
             ->values()
@@ -108,15 +113,15 @@ class OrcamentosCategoriasService
             ];
         }, $meses);
 
-        DB::transaction(function () use ($rows) {
-            OrcamentoCategoria::query()->upsert(
-                $rows,
-                ['usuario_id', 'categoria_gasto_id', 'mes'],
-                ['limite', 'alerta_80_enviado', 'alerta_100_enviado', 'updated_at'],
-            );
-        });
+        Bus::batch([new OrcamentoBatchJob($rows)])
+            ->then(function (Batch $batch) use ($userId, $meses, $categoriaNome, $limite) {
+                event(new OrcamentoBatchEvent($userId, $batch->id, $meses, $categoriaNome, $limite));
+            })
+            ->catch(function (Batch $batch) use ($userId, $meses, $categoriaNome, $limite) {
+                event(new OrcamentoBatchEvent($userId, $batch->id, $meses, $categoriaNome, $limite));
+            })->dispatch();
 
-        return ['updated' => count($rows)];
+        return ['message' => 'Operação em segundo plano iniciada. Os orçamentos serão atualizados em breve. E você receberá uma notificação quando o processo for concluído.'];
     }
 
     /**
