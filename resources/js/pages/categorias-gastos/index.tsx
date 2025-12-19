@@ -5,7 +5,6 @@ import { useCreateCategoriaGasto } from '@/hooks/categorias-gastos/useCreateCate
 import { useGetCategoriasGastos } from '@/hooks/categorias-gastos/useGetCategoriasGastos';
 import { useGetCategoriasGastosResumo } from '@/hooks/categorias-gastos/useGetCategoriasGastosResumo';
 import { useGetGastosPorCategoria } from '@/hooks/categorias-gastos/useGetGastosPorCategoria';
-import { useExportCategoriaGastosCsv } from '@/hooks/categorias-gastos/useExportCategoriaGastosCsv';
 import { monthToLabel, parseApiDecimal } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
@@ -29,7 +28,6 @@ export default function CategoriasGastosIndex() {
     } = useGetCategoriasGastosResumo();
     const { loadGastos, gastosByCategoria, isLoadingByCategoria, errorByCategoria } =
         useGetGastosPorCategoria();
-    const { exportCsv, isExporting: isExportingCsv } = useExportCategoriaGastosCsv();
     const {
         createCategoria,
         isSubmitting,
@@ -71,9 +69,6 @@ export default function CategoriasGastosIndex() {
         void loadResumo({ mes });
     };
 
-    const onExportCsv = async (id: number, categoriaNome?: string) => {
-        await exportCsv(id, { mes, categoriaNome });
-    };
 
     const maxGasto = useMemo(() => {
         if (!resumo?.categorias?.length) return 0;
@@ -178,12 +173,10 @@ export default function CategoriasGastosIndex() {
                             gastosByCategoria={gastosByCategoria}
                             isLoadingByCategoria={isLoadingByCategoria}
                             errorByCategoria={errorByCategoria}
-                            onExportCsv={onExportCsv}
                             mes={mes}
                             onResumoChange={async () => {
                                 await loadResumo({ mes });
                             }}
-                            isExportingCsv={isExportingCsv}
                         />
                     </>
                 ) : null}
