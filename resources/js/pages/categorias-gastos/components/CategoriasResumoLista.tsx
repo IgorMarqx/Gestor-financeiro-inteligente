@@ -5,16 +5,14 @@ import { CategoriaResumoCard } from '@/pages/categorias-gastos/components/Catego
 export function CategoriasResumoLista(props: {
     categorias: ApiCategoriaGastoResumo[];
     maxGasto: number;
+    mes: string;
     expandedId: number | null;
     onToggleExpand: (categoriaId: number) => void;
     gastosByCategoria: Record<number, ApiGastoResumoItem[]>;
     isLoadingByCategoria: Record<number, boolean>;
     errorByCategoria: Record<number, string | null>;
-    onEdit: (id: number, nome: string) => Promise<void> | void;
-    onDelete: (id: number) => Promise<void> | void;
     onExportCsv: (id: number, categoriaNome?: string) => Promise<void> | void;
-    isEditing?: boolean;
-    isDeleting?: boolean;
+    onResumoChange: () => Promise<void> | void;
     isExportingCsv?: boolean;
 }) {
     return (
@@ -25,17 +23,15 @@ export function CategoriasResumoLista(props: {
                     <CategoriaResumoCard
                         key={categoria.id}
                         categoria={categoria}
+                        mes={props.mes}
                         expanded={expanded}
                         onToggle={() => props.onToggleExpand(categoria.id)}
                         gastos={props.gastosByCategoria[categoria.id] ?? []}
                         isLoadingGastos={props.isLoadingByCategoria[categoria.id] ?? false}
                         errorGastos={props.errorByCategoria[categoria.id] ?? null}
                         maxGasto={props.maxGasto}
-                        onEdit={props.onEdit}
-                        onDelete={props.onDelete}
                         onExportCsv={props.onExportCsv}
-                        isEditing={props.isEditing}
-                        isDeleting={props.isDeleting}
+                        onResumoChange={props.onResumoChange}
                         isExportingCsv={props.isExportingCsv}
                     />
                 );
