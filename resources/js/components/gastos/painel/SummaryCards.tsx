@@ -8,7 +8,10 @@ type Props = {
 };
 
 const formatCurrency = (value: number): string =>
-    `R$ ${value.toFixed(2).replace('.', ',')}`;
+    new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
 
 const formatDatePtBr = (iso: string): string => {
     const [y, m, d] = iso.split('-');
