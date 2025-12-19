@@ -27,6 +27,7 @@ class JwtAuthenticate
             return $this->unauthorized($exception->getMessage());
         }
 
+        Auth::guard('api')->setUser($user);
         Auth::setUser($user);
         $request->setUserResolver(fn () => $user);
 
