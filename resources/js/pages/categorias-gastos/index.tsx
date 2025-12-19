@@ -5,8 +5,6 @@ import { useCreateCategoriaGasto } from '@/hooks/categorias-gastos/useCreateCate
 import { useGetCategoriasGastos } from '@/hooks/categorias-gastos/useGetCategoriasGastos';
 import { useGetCategoriasGastosResumo } from '@/hooks/categorias-gastos/useGetCategoriasGastosResumo';
 import { useGetGastosPorCategoria } from '@/hooks/categorias-gastos/useGetGastosPorCategoria';
-import { useUpdateCategoriaGasto } from '@/hooks/categorias-gastos/useUpdateCategoriaGasto';
-import { useDeleteCategoriaGasto } from '@/hooks/categorias-gastos/useDeleteCategoriaGasto';
 import { useExportCategoriaGastosCsv } from '@/hooks/categorias-gastos/useExportCategoriaGastosCsv';
 import { monthToLabel, parseApiDecimal } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
@@ -29,8 +27,6 @@ export default function CategoriasGastosIndex() {
     } = useGetCategoriasGastosResumo();
     const { loadGastos, gastosByCategoria, isLoadingByCategoria, errorByCategoria } =
         useGetGastosPorCategoria();
-    const { updateCategoria, isSubmitting: isUpdating } = useUpdateCategoriaGasto();
-    const { deleteCategoria, isSubmitting: isDeleting } = useDeleteCategoriaGasto();
     const { exportCsv, isExporting: isExportingCsv } = useExportCategoriaGastosCsv();
     const {
         createCategoria,
@@ -64,20 +60,6 @@ export default function CategoriasGastosIndex() {
         setIsDialogOpen(false);
         setNome('');
         void loadResumo({ mes });
-    };
-
-    const onEditCategoria = async (id: number, novoNome: string) => {
-        if (!novoNome) return;
-        const updated = await updateCategoria(id, { nome: novoNome });
-        if (!updated) return;
-        await loadResumo({ mes });
-    };
-
-    const onDeleteCategoria = async (id: number) => {
-        const ok = await deleteCategoria(id);
-        if (!ok) return;
-        setExpandedCategoriaId(null);
-        await loadResumo({ mes });
     };
 
     const onExportCsv = async (id: number, categoriaNome?: string) => {
@@ -187,11 +169,11 @@ export default function CategoriasGastosIndex() {
                             gastosByCategoria={gastosByCategoria}
                             isLoadingByCategoria={isLoadingByCategoria}
                             errorByCategoria={errorByCategoria}
-                            onEdit={onEditCategoria}
-                            onDelete={onDeleteCategoria}
                             onExportCsv={onExportCsv}
-                            isEditing={isUpdating}
-                            isDeleting={isDeleting}
+                            mes={mes}
+                            onResumoChange={async () => {
+                                await loadResumo({ mes });
+                            }}
                             isExportingCsv={isExportingCsv}
                         />
                     </>
