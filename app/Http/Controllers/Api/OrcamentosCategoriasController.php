@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\OrcamentosCategorias\DestroyOrcamentoCategoriaRequest;
 use App\Http\Requests\OrcamentosCategorias\StoreOrcamentoCategoriaRequest;
 use App\Http\Requests\OrcamentosCategorias\UpdateOrcamentoCategoriaRequest;
 use App\Services\OrcamentosCategoriasService;
@@ -37,6 +38,14 @@ class OrcamentosCategoriasController extends ApiController
         return $this->apiSuccess($model, 'Orçamento criado com sucesso.', 201);
     }
 
+    public function upsert(StoreOrcamentoCategoriaRequest $request): JsonResponse
+    {
+        $userId = (int) $request->user()->id;
+        $model = $this->service->upsert($userId, $request->validated());
+
+        return $this->apiSuccess($model, 'Orçamento salvo com sucesso.');
+    }
+
     public function update(UpdateOrcamentoCategoriaRequest $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
@@ -50,6 +59,20 @@ class OrcamentosCategoriasController extends ApiController
     {
         $userId = (int) $request->user()->id;
         if (! $this->service->delete($userId, $id)) return $this->apiError('Orçamento não encontrado.', null, 404);
+
+        return $this->apiSuccess(null, 'Orçamento removido com sucesso.');
+    }
+
+    public function destroyByCategoriaMes(DestroyOrcamentoCategoriaRequest $request): JsonResponse
+    {
+        $userId = (int) $request->user()->id;
+        $payload = $request->validated();
+        $categoriaId = (int) $payload['categoria_gasto_id'];
+        $mes = (string) $payload['mes'];
+
+        if (! $this->service->deleteByCategoriaMes($userId, $categoriaId, $mes)) {
+            return $this->apiError('Orçamento não encontrado.', null, 404);
+        }
 
         return $this->apiSuccess(null, 'Orçamento removido com sucesso.');
     }
