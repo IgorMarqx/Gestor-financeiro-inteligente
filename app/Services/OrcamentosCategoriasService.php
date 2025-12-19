@@ -7,6 +7,7 @@ use App\Repositories\GastosRepository;
 use App\Repositories\OrcamentosCategoriasRepository;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class OrcamentosCategoriasService
 {
@@ -72,6 +73,50 @@ class OrcamentosCategoriasService
         if (! $existing) return false;
         $this->orcamentos->delete($existing);
         return true;
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     * @return array{updated:int}
+     */
+    public function batchUpsert(int $userId, array $payload): array
+    {
+        $categoriaId = (int) $payload['categoria_gasto_id'];
+        $meses = collect($payload['meses'] ?? [])
+            ->map(fn ($m) => (string) $m)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $limite = $payload['limite'];
+
+        if (count($meses) === 0) return ['updated' => 0];
+
+        $now = now();
+
+        $rows = array_map(function (string $mes) use ($userId, $categoriaId, $limite, $now) {
+            return [
+                'usuario_id' => $userId,
+                'categoria_gasto_id' => $categoriaId,
+                'mes' => $mes,
+                'limite' => $limite,
+                'alerta_80_enviado' => 0,
+                'alerta_100_enviado' => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }, $meses);
+
+        DB::transaction(function () use ($rows) {
+            OrcamentoCategoria::query()->upsert(
+                $rows,
+                ['usuario_id', 'categoria_gasto_id', 'mes'],
+                ['limite', 'alerta_80_enviado', 'alerta_100_enviado', 'updated_at'],
+            );
+        });
+
+        return ['updated' => count($rows)];
     }
 
     /**
