@@ -11,9 +11,7 @@ export function CategoriasResumoLista(props: {
     gastosByCategoria: Record<number, ApiGastoResumoItem[]>;
     isLoadingByCategoria: Record<number, boolean>;
     errorByCategoria: Record<number, string | null>;
-    onExportCsv: (id: number, categoriaNome?: string) => Promise<void> | void;
     onResumoChange: () => Promise<void> | void;
-    isExportingCsv?: boolean;
 }) {
     return (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -30,9 +28,7 @@ export function CategoriasResumoLista(props: {
                         isLoadingGastos={props.isLoadingByCategoria[categoria.id] ?? false}
                         errorGastos={props.errorByCategoria[categoria.id] ?? null}
                         maxGasto={props.maxGasto}
-                        onExportCsv={props.onExportCsv}
                         onResumoChange={props.onResumoChange}
-                        isExportingCsv={props.isExportingCsv}
                     />
                 );
             })}
