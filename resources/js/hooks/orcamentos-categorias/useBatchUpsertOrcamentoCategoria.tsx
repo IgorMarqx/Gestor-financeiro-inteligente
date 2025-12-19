@@ -6,6 +6,7 @@ type Payload = {
     categoria_gasto_id: number;
     meses: string[]; // YYYY-MM
     limite: number;
+    categoriaNome: string;
 };
 
 export function useBatchUpsertOrcamentoCategoria() {
