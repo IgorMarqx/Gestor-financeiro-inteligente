@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\OrcamentosCategorias\BatchUpsertOrcamentoCategoriaRequest;
 use App\Http\Requests\OrcamentosCategorias\DestroyOrcamentoCategoriaRequest;
 use App\Http\Requests\OrcamentosCategorias\StoreOrcamentoCategoriaRequest;
 use App\Http\Requests\OrcamentosCategorias\UpdateOrcamentoCategoriaRequest;
@@ -44,6 +45,14 @@ class OrcamentosCategoriasController extends ApiController
         $model = $this->service->upsert($userId, $request->validated());
 
         return $this->apiSuccess($model, 'Orçamento salvo com sucesso.');
+    }
+
+    public function batchUpsert(BatchUpsertOrcamentoCategoriaRequest $request): JsonResponse
+    {
+        $userId = (int) $request->user()->id;
+        $result = $this->service->batchUpsert($userId, $request->validated());
+
+        return $this->apiSuccess($result, 'Orçamentos salvos com sucesso.');
     }
 
     public function update(UpdateOrcamentoCategoriaRequest $request, int $id): JsonResponse
