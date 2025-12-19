@@ -25,6 +25,7 @@ class BatchUpsertOrcamentoCategoriaRequest extends FormRequest
             'meses' => ['required', 'array', 'min:1', 'max:240'],
             'meses.*' => ['required', 'regex:/^\\d{4}-\\d{2}$/'],
             'limite' => ['required', 'numeric', 'min:0'],
+            'categoriaNome' => ['required', 'string'],
         ];
     }
 }
