@@ -38,6 +38,45 @@ class OrcamentosCategoriasService
     /**
      * @param  array<string,mixed>  $payload
      */
+    public function upsert(int $userId, array $payload): OrcamentoCategoria
+    {
+        $categoriaId = (int) $payload['categoria_gasto_id'];
+        $mes = (string) $payload['mes'];
+        $limite = $payload['limite'];
+
+        $existing = $this->orcamentos->findByUserCategoriaMes($userId, $categoriaId, $mes);
+        if (! $existing) {
+            return $this->create($userId, [
+                'categoria_gasto_id' => $categoriaId,
+                'mes' => $mes,
+                'limite' => $limite,
+                'alerta_80_enviado' => false,
+                'alerta_100_enviado' => false,
+            ]);
+        }
+
+        $limiteChanged = (string) $existing->limite !== (string) $limite;
+
+        return $this->orcamentos->update($existing, [
+            'categoria_gasto_id' => $categoriaId,
+            'mes' => $mes,
+            'limite' => $limite,
+            'alerta_80_enviado' => $limiteChanged ? false : $existing->alerta_80_enviado,
+            'alerta_100_enviado' => $limiteChanged ? false : $existing->alerta_100_enviado,
+        ])->load('categoria:id,nome');
+    }
+
+    public function deleteByCategoriaMes(int $userId, int $categoriaId, string $mes): bool
+    {
+        $existing = $this->orcamentos->findByUserCategoriaMes($userId, $categoriaId, $mes);
+        if (! $existing) return false;
+        $this->orcamentos->delete($existing);
+        return true;
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     */
     public function update(int $userId, int $id, array $payload): ?OrcamentoCategoria
     {
         $model = $this->orcamentos->findByIdForUser($id, $userId);
@@ -98,4 +137,3 @@ class OrcamentosCategoriasService
         })->values()->all();
     }
 }
-
