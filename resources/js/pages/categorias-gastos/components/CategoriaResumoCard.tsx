@@ -5,78 +5,25 @@ import { cn } from '@/lib/utils';
 import { ApiCategoriaGastoResumo } from '@/types/ApiCategoriaGastoResumo';
 import { ChevronDown, ChevronUp, Download, Info, Pencil, Trash2 } from 'lucide-react';
 import { CategoriaGastosDetalhados } from '@/pages/categorias-gastos/components/CategoriaGastosDetalhados';
+import { DeleteCategoriaDialog } from '@/pages/categorias-gastos/components/DeleteCategoriaDialog';
+import { EditCategoriaDialog } from '@/pages/categorias-gastos/components/EditCategoriaDialog';
+import { OrcamentoCategoriaDialog } from '@/pages/categorias-gastos/components/OrcamentoCategoriaDialog';
+import { iconForCategoria, Sparkline, statusLabel } from '@/pages/categorias-gastos/components/categoria-resumo-card-utils';
 import { ApiGastoResumoItem } from '@/types/ApiGastoResumoItem';
 import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-function statusLabel(status: ApiCategoriaGastoResumo['status']): string {
-    if (status === 'estourou') return 'Estourou';
-    if (status === 'alerta80') return 'Alerta 80%';
-    if (status === 'ok') return 'Ok';
-    return 'Sem orçamento';
-}
-
-function iconForCategoria(name: string): string {
-    const lower = name.toLowerCase();
-    if (lower.includes('alim') || lower.includes('comida') || lower.includes('merc')) return '🍽️';
-    if (lower.includes('trans') || lower.includes('uber') || lower.includes('car')) return '🚗';
-    if (lower.includes('lazer') || lower.includes('diver') || lower.includes('cin')) return '🎬';
-    if (lower.includes('saúde') || lower.includes('saude') || lower.includes('farm')) return '💊';
-    if (lower.includes('casa') || lower.includes('alug')) return '🏠';
-    return '🏷️';
-}
-
-function Sparkline(props: { values: number[] }) {
-    const points = useMemo(() => {
-        if (!props.values.length) return '';
-        const max = Math.max(...props.values, 1);
-        const width = 110;
-        const height = 26;
-        return props.values
-            .map((v, i) => {
-                const x = (i / Math.max(1, props.values.length - 1)) * width;
-                const y = height - (v / max) * height;
-                return `${x.toFixed(2)},${y.toFixed(2)}`;
-            })
-            .join(' ');
-    }, [props.values]);
-
-    return (
-        <svg width="110" height="26" viewBox="0 0 110 26" className="shrink-0">
-            <polyline
-                fill="none"
-                stroke="#009D69"
-                strokeWidth="2"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                points={points}
-            />
-        </svg>
-    );
-}
 
 export function CategoriaResumoCard(props: {
     categoria: ApiCategoriaGastoResumo;
+    mes: string;
     expanded: boolean;
     onToggle: () => void;
     gastos: ApiGastoResumoItem[];
     isLoadingGastos: boolean;
     errorGastos: string | null;
     maxGasto: number;
-    onEdit: (id: number, nome: string) => Promise<void> | void;
-    onDelete: (id: number) => Promise<void> | void;
     onExportCsv: (id: number, categoriaNome?: string) => Promise<void> | void;
-    isEditing?: boolean;
-    isDeleting?: boolean;
+    onResumoChange: () => Promise<void> | void;
     isExportingCsv?: boolean;
 }) {
     const gasto = parseApiDecimal(props.categoria.gasto_total);
@@ -88,7 +35,7 @@ export function CategoriaResumoCard(props: {
 
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [nome, setNome] = useState(props.categoria.nome);
+    const [isBudgetOpen, setIsBudgetOpen] = useState(false);
 
     const serieValues = useMemo(
         () => (props.categoria.serie_30d ?? []).map((v) => parseApiDecimal(v)),
@@ -124,12 +71,26 @@ export function CategoriaResumoCard(props: {
                                     {formatCurrencyBRL(parseApiDecimal(props.categoria.maior_gasto))}
                                 </span>
                             </div>
-                            {limite !== null ? (
-                                <p className="text-muted-foreground text-xs">
-                                    Limite {formatCurrencyBRL(limite)}
-                                    {percentual !== null ? ` • ${percentual}%` : ''}
-                                </p>
-                            ) : null}
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                                {limite !== null ? (
+                                    <p className="text-muted-foreground text-xs">
+                                        Limite {formatCurrencyBRL(limite)}
+                                        {percentual !== null ? ` • ${percentual}%` : ''}
+                                    </p>
+                                ) : (
+                                    <p className="text-muted-foreground text-xs">Sem orçamento</p>
+                                )}
+
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => setIsBudgetOpen(true)}
+                                >
+                                    {limite !== null ? 'Editar orçamento' : 'Definir orçamento'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -139,11 +100,7 @@ export function CategoriaResumoCard(props: {
                             variant="ghost"
                             size="icon"
                             className="text-muted-foreground hover:bg-blue-100 hover:text-blue-900 cursor-pointer"
-                            onClick={() => {
-                                setNome(props.categoria.nome);
-                                setIsEditOpen(true);
-                            }}
-                            disabled={props.isEditing || props.isDeleting}
+                            onClick={() => setIsEditOpen(true)}
                         >
                             <Pencil className="size-4" />
                         </Button>
@@ -152,7 +109,6 @@ export function CategoriaResumoCard(props: {
                             size="icon"
                             className="text-muted-foreground hover:bg-red-100 hover:text-red-500 cursor-pointer"
                             onClick={() => setIsDeleteOpen(true)}
-                            disabled={props.isDeleting || props.isEditing}
                         >
                             <Trash2 className="size-4" />
                         </Button>
@@ -217,66 +173,29 @@ export function CategoriaResumoCard(props: {
                 ) : null}
             </CardContent>
 
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Editar categoria</DialogTitle>
-                        <DialogDescription>Atualize o nome da categoria.</DialogDescription>
-                    </DialogHeader>
+            <EditCategoriaDialog
+                open={isEditOpen}
+                onOpenChange={setIsEditOpen}
+                categoriaId={props.categoria.id}
+                nomeInicial={props.categoria.nome}
+                onSuccess={props.onResumoChange}
+            />
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Nome</label>
-                        <Input value={nome} onChange={(e) => setNome(e.target.value)} />
-                    </div>
+            <OrcamentoCategoriaDialog
+                open={isBudgetOpen}
+                onOpenChange={setIsBudgetOpen}
+                categoriaId={props.categoria.id}
+                mes={props.mes}
+                limiteInicial={limite}
+                onSuccess={props.onResumoChange}
+            />
 
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsEditOpen(false)}
-                            disabled={props.isEditing}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={async () => {
-                                await props.onEdit(props.categoria.id, nome.trim());
-                                setIsEditOpen(false);
-                            }}
-                            disabled={props.isEditing}
-                        >
-                            {props.isEditing ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Excluir categoria</DialogTitle>
-                        <DialogDescription>Essa ação não pode ser desfeita.</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsDeleteOpen(false)}
-                            disabled={props.isDeleting}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={async () => {
-                                await props.onDelete(props.categoria.id);
-                                setIsDeleteOpen(false);
-                            }}
-                            disabled={props.isDeleting}
-                        >
-                            {props.isDeleting ? 'Excluindo...' : 'Excluir'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <DeleteCategoriaDialog
+                open={isDeleteOpen}
+                onOpenChange={setIsDeleteOpen}
+                categoriaId={props.categoria.id}
+                onSuccess={props.onResumoChange}
+            />
         </Card>
     );
 }
