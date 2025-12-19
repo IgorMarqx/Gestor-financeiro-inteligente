@@ -6,6 +6,32 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NotificationsProvider } from '@/components/notifications/notifications';
 import { initializeTheme } from './hooks/use-appearance';
+import { getReverbConfig } from './lib/reverb-config';
+
+// Echo/Reverb
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
+
+void getReverbConfig()
+    .then((config) => {
+        window.Echo = new Echo({
+            broadcaster: 'pusher',
+            key: config.appKey,
+            cluster: 'mt1',
+            wsHost: config.host || window.location.hostname,
+            wsPort: Number(config.port || 8080),
+            wssPort: Number(config.port || 8080),
+            forceTLS: config.scheme === 'https',
+            enabledTransports: ['ws', 'wss'],
+            authEndpoint: '/api/broadcasting/auth',
+        });
+
+    })
+    .catch((error) => {
+        console.error('Reverb config error:', error);
+    });
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
