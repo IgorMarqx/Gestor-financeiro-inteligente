@@ -17,9 +17,10 @@ class GastosController extends ApiController
     public function index(IndexGastosRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
 
         return $this->apiSuccess(
-            data: $this->gastosService->listWithSummary($userId, $request->validated()),
+            data: $this->gastosService->listWithSummary($userId, $request->validated(), $familiaId),
             message: 'OK',
         );
     }
@@ -27,7 +28,8 @@ class GastosController extends ApiController
     public function store(StoreGastoRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $gasto = $this->gastosService->create($userId, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $gasto = $this->gastosService->create($userId, $request->validated(), $familiaId);
 
         return $this->apiSuccess($gasto, 'Gasto criado com sucesso.', 201);
     }
@@ -35,7 +37,8 @@ class GastosController extends ApiController
     public function update(UpdateGastoRequest $request, int $gasto): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $updated = $this->gastosService->update($userId, $gasto, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $updated = $this->gastosService->update($userId, $gasto, $request->validated(), $familiaId);
 
         if (! $updated) {
             return $this->apiError('Gasto não encontrado.', null, 404);
@@ -47,8 +50,9 @@ class GastosController extends ApiController
     public function destroy(Request $request, int $gasto): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
 
-        if (! $this->gastosService->delete($userId, $gasto)) {
+        if (! $this->gastosService->delete($userId, $gasto, $familiaId)) {
             return $this->apiError('Gasto não encontrado.', null, 404);
         }
 
@@ -58,9 +62,10 @@ class GastosController extends ApiController
     public function validar(ValidarGastoRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
 
         return $this->apiSuccess(
-            data: $this->gastosService->validar($userId, $request->validated()),
+            data: $this->gastosService->validar($userId, $request->validated(), $familiaId),
             message: 'OK',
         );
     }
