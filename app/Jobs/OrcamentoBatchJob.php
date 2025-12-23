@@ -33,7 +33,7 @@ class OrcamentoBatchJob implements ShouldQueue
         DB::transaction(function () use ($rows) {
             OrcamentoCategoria::query()->upsert(
                 $rows,
-                ['usuario_id', 'categoria_gasto_id', 'mes'],
+                ['familia_id', 'usuario_id', 'categoria_gasto_id', 'mes'],
                 ['limite', 'alerta_80_enviado', 'alerta_100_enviado', 'updated_at'],
             );
         });
