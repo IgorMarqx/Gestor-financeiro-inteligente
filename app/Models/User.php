@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -22,6 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'cpf',
+        'telefone',
     ];
 
     /**
@@ -48,5 +51,19 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function familias(): BelongsToMany
+    {
+        return $this->belongsToMany(Familia::class, 'familia_user')
+            ->withPivot('vinculo')
+            ->withTimestamps();
+    }
+
+    public function familiaVinculadaId(): ?int
+    {
+        return $this->familias()
+            ->wherePivot('vinculo', true)
+            ->value('familias.id');
     }
 }
