@@ -13,11 +13,16 @@ class GeminiService
      * @param  array<int, array{role:string,parts:array<int, array{text:string}>}>  $historyContents
      * @return array{text:string,meta:array<string, mixed>}
      */
-    public function handlePrompt(string $prompt, array $historyContents, int $userId): array
+    public function handlePrompt(
+        string $prompt,
+        array $historyContents,
+        int $userId,
+        ?int $familiaId = null
+    ): array
     {
-        $sql = $this->generateSql($prompt);
+        $sql = $this->generateSql($prompt, $familiaId !== null);
         if ($sql !== self::NO_QUERY_TOKEN) {
-            $rows = $this->runQuery($sql, $userId);
+            $rows = $this->runQuery($sql, $userId, $familiaId);
             return $this->answerWithData($prompt, $rows, $historyContents);
         }
 
@@ -27,25 +32,29 @@ class GeminiService
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function runQuery(string $sql, int $userId): array
+    private function runQuery(string $sql, int $userId, ?int $familiaId = null): array
     {
         $sql = $this->normalizeSql($sql);
         $this->assertSelectOnly($sql);
-        $sql = $this->ensureUserFilter($sql);
+        $column = $familiaId !== null ? 'familia_id' : 'usuario_id';
+        $param = $familiaId !== null ? ':familia_id' : ':user_id';
+        $sql = $this->ensureScopeFilter($sql, $column, $param);
         $sql = $this->ensureLimit($sql);
 
-        $rows = DB::select($sql, ['user_id' => $userId]);
+        $bindings = $familiaId !== null ? ['familia_id' => $familiaId] : ['user_id' => $userId];
+        $rows = DB::select($sql, $bindings);
 
         return array_map(static fn($row) => (array) $row, $rows);
     }
 
-    private function generateSql(string $prompt): string
+    private function generateSql(string $prompt, bool $useFamilia = false): string
     {
+        $scopeHint = $useFamilia ? ':familia_id' : ':user_id';
         $instruction = implode(' ', [
             'Gere uma consulta SQL (apenas a query) para responder a pergunta do usuário.',
             'Se não precisar de dados do banco, responda exatamente com ' . self::NO_QUERY_TOKEN . '.',
             'Use sintaxe MySQL (não use STRFTIME nem DATE(\'now\')).',
-            'Se usar SQL, prefira filtrar por :user_id quando aplicável.',
+            'Se usar SQL, prefira filtrar por ' . $scopeHint . ' quando aplicável.',
             'Evite UPDATE, DELETE, INSERT ou qualquer comando que altere dados.',
             'Pergunta do usuário: ' . $prompt,
         ]);
@@ -186,14 +195,14 @@ class GeminiService
         }
     }
 
-    private function ensureUserFilter(string $sql): string
+    private function ensureScopeFilter(string $sql, string $column, string $param): string
     {
-        if (stripos($sql, ':user_id') !== false) {
+        if (stripos($sql, $param) !== false) {
             return $sql;
         }
 
         $hasWhere = (bool) preg_match('/\bwhere\b/i', $sql);
-        return $this->appendCondition($sql, 'usuario_id = :user_id', $hasWhere);
+        return $this->appendCondition($sql, "{$column} = {$param}", $hasWhere);
     }
 
     private function ensureLimit(string $sql): string
@@ -261,21 +270,23 @@ class GeminiService
     private function schemaSummary(): string
     {
         return implode('; ', [
-            'gastos(id, usuario_id, nome, valor, data, descricao, categoria_gasto_id, metodo_pagamento, tipo, necessidade, origem_id, deletado_em, created_at, updated_at)',
-            'categorias_gastos(id, usuario_id, nome, created_at, updated_at)',
-            'gastos_parcelamentos(id, usuario_id, categoria_gasto_id, nome, descricao, valor_total, parcelas_total, data_inicio, ativo, metodo_pagamento, tipo, necessidade, created_at, updated_at)',
-            'gastos_parcelas(id, parcelamento_id, usuario_id, numero_parcela, valor, vencimento, gasto_id, status, created_at, updated_at)',
-            'gastos_recorrentes(id, usuario_id, categoria_gasto_id, nome, descricao, valor, dia_do_mes, ativo, proxima_data, metodo_pagamento, tipo, necessidade, created_at, updated_at)',
-            'orcamentos_categorias(id, usuario_id, categoria_gasto_id, mes, limite, alerta_80_enviado, alerta_100_enviado, created_at, updated_at)',
-            'receitas(id, usuario_id, nome, valor, data, descricao, conta_id, created_at, updated_at)',
-            'contas(id, usuario_id, nome, tipo, saldo_inicial, created_at, updated_at)',
-            'transacoes(id, usuario_id, tipo, valor, data, referencia_tipo, referencia_id, conta_origem_id, conta_destino_id, created_at, updated_at)',
-            'carteira_investimentos(id, nome, saldo, usuario_id, created_at, updated_at)',
-            'ativos(id, usuario_id, nome, tipo, ticker, created_at, updated_at)',
-            'movimentacoes_investimentos(id, usuario_id, carteira_investimentos_id, ativo_id, tipo, valor, quantidade, data, observacao, created_at, updated_at)',
+            'gastos(id, usuario_id, familia_id, nome, valor, data, descricao, categoria_gasto_id, metodo_pagamento, tipo, necessidade, origem_id, deletado_em, created_at, updated_at)',
+            'categorias_gastos(id, usuario_id, familia_id, nome, created_at, updated_at)',
+            'gastos_parcelamentos(id, usuario_id, familia_id, categoria_gasto_id, nome, descricao, valor_total, parcelas_total, data_inicio, ativo, metodo_pagamento, tipo, necessidade, created_at, updated_at)',
+            'gastos_parcelas(id, parcelamento_id, usuario_id, familia_id, numero_parcela, valor, vencimento, gasto_id, status, created_at, updated_at)',
+            'gastos_recorrentes(id, usuario_id, familia_id, categoria_gasto_id, nome, descricao, valor, dia_do_mes, ativo, proxima_data, metodo_pagamento, tipo, necessidade, created_at, updated_at)',
+            'orcamentos_categorias(id, usuario_id, familia_id, categoria_gasto_id, mes, limite, alerta_80_enviado, alerta_100_enviado, created_at, updated_at)',
+            'receitas(id, usuario_id, familia_id, nome, valor, data, descricao, conta_id, created_at, updated_at)',
+            'contas(id, usuario_id, familia_id, nome, tipo, saldo_inicial, created_at, updated_at)',
+            'transacoes(id, usuario_id, familia_id, tipo, valor, data, referencia_tipo, referencia_id, conta_origem_id, conta_destino_id, created_at, updated_at)',
+            'carteira_investimentos(id, nome, saldo, usuario_id, familia_id, created_at, updated_at)',
+            'ativos(id, usuario_id, familia_id, nome, tipo, ticker, created_at, updated_at)',
+            'movimentacoes_investimentos(id, usuario_id, familia_id, carteira_investimentos_id, ativo_id, tipo, valor, quantidade, data, observacao, created_at, updated_at)',
             'users(id, name, email, email_verified_at, password, remember_token, created_at, updated_at)',
-            'chats(id, usuario_id, titulo, contexto, created_at, updated_at)',
-            'chat_mensagens(id, chat_id, role, conteudo, meta, created_at, updated_at)',
+            'familia_user(familia_id, user_id, vinculo, created_at, updated_at)',
+            'familias(id, nome, criado_por_user_id, created_at, updated_at)',
+            'chats(id, usuario_id, familia_id, titulo, contexto, created_at, updated_at)',
+            'chat_mensagens(id, chat_id, familia_id, role, conteudo, meta, created_at, updated_at)',
         ]);
     }
 }
