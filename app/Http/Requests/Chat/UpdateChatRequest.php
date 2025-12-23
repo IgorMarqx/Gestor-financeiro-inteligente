@@ -15,12 +15,19 @@ class UpdateChatRequest extends FormRequest
     public function rules(): array
     {
         $userId = (int) ($this->user()?->id ?? 0);
+        $familiaId = $this->user()?->familiaVinculadaId();
 
         return [
             'chat_id' => [
                 'required',
                 'integer',
-                Rule::exists('chats', 'id')->where('usuario_id', $userId),
+                Rule::exists('chats', 'id')->where(function ($query) use ($userId, $familiaId) {
+                    if ($familiaId !== null) {
+                        $query->where('familia_id', $familiaId);
+                    } else {
+                        $query->where('usuario_id', $userId);
+                    }
+                }),
             ],
             'titulo' => ['required', 'string', 'max:120'],
         ];
