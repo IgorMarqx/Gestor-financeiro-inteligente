@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\GastoParcela;
+use App\Support\FamiliaScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -12,14 +13,15 @@ class GastosParcelasRepository
     /**
      * @param  array{inicio?:string|null,fim?:string|null,status?:'PENDENTE'|'GERADO'|'PAGO'|null,parcelamento_id?:int|null,per_page?:int|null}  $filters
      */
-    public function paginateByUser(int $userId, array $filters): LengthAwarePaginator
+    public function paginateByUser(int $userId, ?int $familiaId, array $filters): LengthAwarePaginator
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         if ($perPage <= 0 || $perPage > 100) $perPage = 15;
 
         $query = GastoParcela::query()
-            ->with(['parcelamento.categoria:id,nome', 'gasto:id,data,valor'])
-            ->where('usuario_id', $userId);
+            ->with(['parcelamento.categoria:id,nome', 'gasto:id,data,valor']);
+
+        $query = FamiliaScope::apply($query, $userId, $familiaId);
 
         if (! empty($filters['inicio'])) {
             $query->whereDate('vencimento', '>=', (string) $filters['inicio']);
@@ -69,12 +71,15 @@ class GastosParcelasRepository
     /**
      * @return Collection<int, GastoParcela>
      */
-    public function listDueForGeneration(int $userId, string $today): Collection
+    public function listDueForGeneration(int $userId, ?int $familiaId, string $today): Collection
     {
-        return GastoParcela::query()
-            ->where('usuario_id', $userId)
+        $builder = GastoParcela::query()
             ->whereIn('status', ['PENDENTE'])
-            ->whereDate('vencimento', '<=', $today)
+            ->whereDate('vencimento', '<=', $today);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderBy('vencimento')
             ->get();
     }
@@ -88,11 +93,11 @@ class GastosParcelasRepository
         $parcela->save();
     }
 
-    public function findByIdForUser(int $id, int $userId): ?GastoParcela
+    public function findByIdForUser(int $id, int $userId, ?int $familiaId = null): ?GastoParcela
     {
-        return GastoParcela::query()
-            ->where('id', $id)
-            ->where('usuario_id', $userId)
-            ->first();
+        $builder = GastoParcela::query()->where('id', $id);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 }
