@@ -6,6 +6,7 @@ use App\Models\GastoParcelamento;
 use App\Repositories\GastosParcelamentosRepository;
 use App\Repositories\GastosParcelasRepository;
 use App\Repositories\GastosRepository;
+use App\Support\FamiliaScope;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -18,18 +19,22 @@ class GastosParcelamentosService
         private readonly GastosRepository $gastos,
     ) {}
 
-    public function paginate(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $userId, int $perPage = 15, ?int $familiaId = null): LengthAwarePaginator
     {
-        return $this->parcelamentos->paginateByUser($userId, $perPage);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        return $this->parcelamentos->paginateByUser($userId, $familiaId, $perPage);
     }
 
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function create(int $userId, array $payload): GastoParcelamento
+    public function create(int $userId, array $payload, ?int $familiaId = null): GastoParcelamento
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+
         return $this->parcelamentos->create([
             'usuario_id' => $userId,
+            'familia_id' => $familiaId,
             'categoria_gasto_id' => (int) $payload['categoria_gasto_id'],
             'nome' => (string) $payload['nome'],
             'descricao' => $payload['descricao'] ?? null,
@@ -46,9 +51,10 @@ class GastosParcelamentosService
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function update(int $userId, int $id, array $payload): ?GastoParcelamento
+    public function update(int $userId, int $id, array $payload, ?int $familiaId = null): ?GastoParcelamento
     {
-        $model = $this->parcelamentos->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->parcelamentos->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return null;
 
         return $this->parcelamentos->update($model, [
@@ -65,17 +71,19 @@ class GastosParcelamentosService
         ])->load('categoria:id,nome');
     }
 
-    public function delete(int $userId, int $id): bool
+    public function delete(int $userId, int $id, ?int $familiaId = null): bool
     {
-        $model = $this->parcelamentos->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->parcelamentos->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return false;
         $this->parcelamentos->delete($model);
         return true;
     }
 
-    public function setAtivo(int $userId, int $id, bool $ativo): ?GastoParcelamento
+    public function setAtivo(int $userId, int $id, bool $ativo, ?int $familiaId = null): ?GastoParcelamento
     {
-        $model = $this->parcelamentos->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->parcelamentos->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return null;
 
         return $this->parcelamentos->update($model, ['ativo' => $ativo])->load('categoria:id,nome');
@@ -85,9 +93,10 @@ class GastosParcelamentosService
      * Cria parcelas se ainda não existem.
      * @return array{criadas:int,ja_existiam:bool}
      */
-    public function gerarParcelas(int $userId, int $parcelamentoId): array
+    public function gerarParcelas(int $userId, int $parcelamentoId, ?int $familiaId = null): array
     {
-        $parcelamento = $this->parcelamentos->findByIdForUser($parcelamentoId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $parcelamento = $this->parcelamentos->findByIdForUser($parcelamentoId, $userId, $familiaId);
         if (! $parcelamento) {
             return ['criadas' => 0, 'ja_existiam' => false];
         }
@@ -114,6 +123,7 @@ class GastosParcelamentosService
             $rows[] = [
                 'parcelamento_id' => $parcelamentoId,
                 'usuario_id' => $userId,
+                'familia_id' => $familiaId,
                 'numero_parcela' => $i,
                 'valor' => $valor,
                 'vencimento' => $vencimento,
@@ -135,10 +145,11 @@ class GastosParcelamentosService
      * Gera gastos para parcelas vencidas (status=PENDENTE).
      * @return array{gerados:int}
      */
-    public function gerarLancamentos(int $userId, ?string $today = null): array
+    public function gerarLancamentos(int $userId, ?string $today = null, ?int $familiaId = null): array
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $hoje = $today ? Carbon::parse($today) : Carbon::today();
-        $due = $this->parcelas->listDueForGeneration($userId, $hoje->toDateString());
+        $due = $this->parcelas->listDueForGeneration($userId, $familiaId, $hoje->toDateString());
 
         $gerados = 0;
 
@@ -149,6 +160,7 @@ class GastosParcelamentosService
 
                 $gasto = $this->gastos->create([
                     'usuario_id' => (int) $parcelamento->usuario_id,
+                    'familia_id' => $familiaId,
                     'categoria_gasto_id' => (int) $parcelamento->categoria_gasto_id,
                     'nome' => (string) $parcelamento->nome,
                     'descricao' => $parcelamento->descricao,
@@ -168,4 +180,3 @@ class GastosParcelamentosService
         return ['gerados' => $gerados];
     }
 }
-
