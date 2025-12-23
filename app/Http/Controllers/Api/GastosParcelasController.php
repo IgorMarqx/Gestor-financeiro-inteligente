@@ -18,9 +18,10 @@ class GastosParcelasController extends ApiController
     public function index(IndexGastosParcelasRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
         $filters = $request->validated();
 
-        $paginator = $this->parcelas->paginateByUser($userId, $filters);
+        $paginator = $this->parcelas->paginateByUser($userId, $familiaId, $filters);
 
         return $this->apiSuccess([
             'itens' => $paginator->items(),
@@ -36,7 +37,8 @@ class GastosParcelasController extends ApiController
     public function gerarLancamentos(Request $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $result = $this->service->gerarLancamentos($userId);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $result = $this->service->gerarLancamentos($userId, null, $familiaId);
 
         return $this->apiSuccess($result, 'Geração executada.');
     }
