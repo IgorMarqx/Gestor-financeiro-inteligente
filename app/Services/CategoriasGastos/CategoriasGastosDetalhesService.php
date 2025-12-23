@@ -5,6 +5,7 @@ namespace App\Services\CategoriasGastos;
 use App\Repositories\CategoriasGastosRepository;
 use App\Repositories\GastosRepository;
 use App\Services\CategoriasGastos\Periodos\CategoriasPeriodo;
+use App\Support\FamiliaScope;
 use Illuminate\Support\Collection;
 
 class CategoriasGastosDetalhesService
@@ -17,9 +18,16 @@ class CategoriasGastosDetalhesService
     /**
      * @return array{categoria: array{id:int,nome:string}, periodo: array{inicio:string,fim:string,mes:string|null}, gastos: Collection<int, array{id:int,nome:string,valor:string,data:string}>}
      */
-    public function gastosPorCategoria(int $userId, int $categoriaId, CategoriasPeriodo $periodo, int $limit = 50): array
+    public function gastosPorCategoria(
+        int $userId,
+        int $categoriaId,
+        CategoriasPeriodo $periodo,
+        int $limit = 50,
+        ?int $familiaId = null
+    ): array
     {
-        $categoria = $this->categorias->findByIdForUser($categoriaId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $categoria = $this->categorias->findByIdForUser($categoriaId, $userId, $familiaId);
         if (! $categoria) {
             abort(404, 'Categoria não encontrada.');
         }
@@ -36,6 +44,7 @@ class CategoriasGastosDetalhesService
             ],
             'gastos' => $this->gastos->listResumoByUserCategoriaPeriodo(
                 $userId,
+                $familiaId,
                 $categoriaId,
                 $periodo->inicio,
                 $periodo->fim,
@@ -44,4 +53,3 @@ class CategoriasGastosDetalhesService
         ];
     }
 }
-
