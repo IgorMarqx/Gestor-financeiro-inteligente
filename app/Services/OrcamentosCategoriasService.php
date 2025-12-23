@@ -7,6 +7,7 @@ use App\Jobs\OrcamentoBatchJob;
 use App\Models\OrcamentoCategoria;
 use App\Repositories\GastosRepository;
 use App\Repositories\OrcamentosCategoriasRepository;
+use App\Support\FamiliaScope;
 use Carbon\Carbon;
 use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -20,18 +21,22 @@ class OrcamentosCategoriasService
         private readonly GastosRepository $gastos,
     ) {}
 
-    public function paginate(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $userId, int $perPage = 15, ?int $familiaId = null): LengthAwarePaginator
     {
-        return $this->orcamentos->paginateByUser($userId, $perPage);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        return $this->orcamentos->paginateByUser($userId, $familiaId, $perPage);
     }
 
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function create(int $userId, array $payload): OrcamentoCategoria
+    public function create(int $userId, array $payload, ?int $familiaId = null): OrcamentoCategoria
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+
         return $this->orcamentos->create([
             'usuario_id' => $userId,
+            'familia_id' => $familiaId,
             'categoria_gasto_id' => (int) $payload['categoria_gasto_id'],
             'mes' => (string) $payload['mes'],
             'limite' => $payload['limite'],
@@ -43,13 +48,14 @@ class OrcamentosCategoriasService
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function upsert(int $userId, array $payload): OrcamentoCategoria
+    public function upsert(int $userId, array $payload, ?int $familiaId = null): OrcamentoCategoria
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $categoriaId = (int) $payload['categoria_gasto_id'];
         $mes = (string) $payload['mes'];
         $limite = $payload['limite'];
 
-        $existing = $this->orcamentos->findByUserCategoriaMes($userId, $categoriaId, $mes);
+        $existing = $this->orcamentos->findByUserCategoriaMes($userId, $familiaId, $categoriaId, $mes);
         if (! $existing) {
             return $this->create($userId, [
                 'categoria_gasto_id' => $categoriaId,
@@ -57,7 +63,7 @@ class OrcamentosCategoriasService
                 'limite' => $limite,
                 'alerta_80_enviado' => false,
                 'alerta_100_enviado' => false,
-            ]);
+            ], $familiaId);
         }
 
         $limiteChanged = (string) $existing->limite !== (string) $limite;
@@ -71,9 +77,15 @@ class OrcamentosCategoriasService
         ])->load('categoria:id,nome');
     }
 
-    public function deleteByCategoriaMes(int $userId, int $categoriaId, string $mes): bool
+    public function deleteByCategoriaMes(
+        int $userId,
+        int $categoriaId,
+        string $mes,
+        ?int $familiaId = null
+    ): bool
     {
-        $existing = $this->orcamentos->findByUserCategoriaMes($userId, $categoriaId, $mes);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $existing = $this->orcamentos->findByUserCategoriaMes($userId, $familiaId, $categoriaId, $mes);
         if (! $existing) return false;
         $this->orcamentos->delete($existing);
         return true;
@@ -83,8 +95,9 @@ class OrcamentosCategoriasService
      * @param  array<string,mixed>  $payload
      * @return array{updated:int}
      */
-    public function batchUpsert(int $userId, array $payload): array
+    public function batchUpsert(int $userId, array $payload, ?int $familiaId = null): array
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $categoriaId = (int) $payload['categoria_gasto_id'];
         $categoriaNome = (string) $payload['categoriaNome'];
         $meses = collect($payload['meses'] ?? [])
@@ -100,9 +113,10 @@ class OrcamentosCategoriasService
 
         $now = now();
 
-        $rows = array_map(function (string $mes) use ($userId, $categoriaId, $limite, $now) {
+        $rows = array_map(function (string $mes) use ($userId, $familiaId, $categoriaId, $limite, $now) {
             return [
                 'usuario_id' => $userId,
+                'familia_id' => $familiaId,
                 'categoria_gasto_id' => $categoriaId,
                 'mes' => $mes,
                 'limite' => $limite,
@@ -127,9 +141,10 @@ class OrcamentosCategoriasService
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function update(int $userId, int $id, array $payload): ?OrcamentoCategoria
+    public function update(int $userId, int $id, array $payload, ?int $familiaId = null): ?OrcamentoCategoria
     {
-        $model = $this->orcamentos->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->orcamentos->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return null;
 
         return $this->orcamentos->update($model, [
@@ -141,9 +156,10 @@ class OrcamentosCategoriasService
         ])->load('categoria:id,nome');
     }
 
-    public function delete(int $userId, int $id): bool
+    public function delete(int $userId, int $id, ?int $familiaId = null): bool
     {
-        $model = $this->orcamentos->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->orcamentos->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return false;
         $this->orcamentos->delete($model);
         return true;
@@ -152,18 +168,19 @@ class OrcamentosCategoriasService
     /**
      * @return array<int,array{categoria_gasto_id:int,categoria_nome:string,limite:string,gasto_atual:string,percentual:float,status:'ok'|'alerta80'|'estourou'}>
      */
-    public function resumo(int $userId, string $mes): array
+    public function resumo(int $userId, string $mes, ?int $familiaId = null): array
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $inicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth()->toDateString();
         $fim = Carbon::createFromFormat('Y-m', $mes)->endOfMonth()->toDateString();
 
-        $orcamentos = $this->orcamentos->listByUserAndMes($userId, $mes);
+        $orcamentos = $this->orcamentos->listByUserAndMes($userId, $familiaId, $mes);
 
         $summary = $this->gastos->paginateWithSummary($userId, [
             'inicio' => $inicio,
             'fim' => $fim,
             'per_page' => 1,
-        ]);
+        ], $familiaId);
         $totais = collect($summary['totais_por_categoria'])->keyBy('categoria_gasto_id');
 
         return $orcamentos->map(function (OrcamentoCategoria $orc) use ($totais) {
