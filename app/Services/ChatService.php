@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Chat;
 use App\Repositories\ChatMensagensRepository;
 use App\Repositories\ChatsRepository;
+use App\Support\FamiliaScope;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -22,23 +23,28 @@ class ChatService
     /**
      * @return Collection<int, Chat>
      */
-    public function listChats(int $userId): Collection
+    public function listChats(int $userId, ?int $familiaId = null): Collection
     {
-        return $this->chatsRepository->listByUser($userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        return $this->chatsRepository->listByUser($userId, $familiaId);
     }
 
-    public function createChat(int $userId, ?string $titulo = null): Chat
+    public function createChat(int $userId, ?string $titulo = null, ?int $familiaId = null): Chat
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+
         return $this->chatsRepository->create([
             'usuario_id' => $userId,
+            'familia_id' => $familiaId,
             'titulo' => $titulo,
             'contexto' => [],
         ]);
     }
 
-    public function updateTitle(int $userId, int $chatId, string $titulo): ?Chat
+    public function updateTitle(int $userId, int $chatId, string $titulo, ?int $familiaId = null): ?Chat
     {
-        $chat = $this->chatsRepository->findByIdForUser($chatId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $chat = $this->chatsRepository->findByIdForUser($chatId, $userId, $familiaId);
         if (!$chat) {
             return null;
         }
@@ -49,9 +55,10 @@ class ChatService
     /**
      * @return Collection<int, mixed>|null
      */
-    public function getConversation(int $userId, int $chatId): ?Collection
+    public function getConversation(int $userId, int $chatId, ?int $familiaId = null): ?Collection
     {
-        $chat = $this->chatsRepository->findByIdForUser($chatId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $chat = $this->chatsRepository->findByIdForUser($chatId, $userId, $familiaId);
         if (!$chat) {
             return null;
         }
@@ -62,15 +69,17 @@ class ChatService
     /**
      * @return Collection<int, mixed>|null
      */
-    public function sendMessage(int $userId, int $chatId, string $prompt): ?Collection
+    public function sendMessage(int $userId, int $chatId, string $prompt, ?int $familiaId = null): ?Collection
     {
-        $chat = $this->chatsRepository->findByIdForUser($chatId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $chat = $this->chatsRepository->findByIdForUser($chatId, $userId, $familiaId);
         if (!$chat) {
             return null;
         }
 
         $this->chatMensagensRepository->create([
             'chat_id' => $chatId,
+            'familia_id' => $familiaId,
             'role' => 'user',
             'conteudo' => $prompt,
             'meta' => null,
@@ -80,7 +89,7 @@ class ChatService
         $mensagens = $this->chatMensagensRepository->listByChat($chatId);
         $contents = $this->buildContents($mensagens);
 
-        $response = $this->geminiService->handlePrompt($prompt, $contents, $userId);
+        $response = $this->geminiService->handlePrompt($prompt, $contents, $userId, $familiaId);
         $assistantText = trim($response['text'] ?? '');
         if ($assistantText === '') {
             throw new RuntimeException('Resposta vazia da IA.');
@@ -88,6 +97,7 @@ class ChatService
 
         $assistantMessage = $this->chatMensagensRepository->create([
             'chat_id' => $chatId,
+            'familia_id' => $familiaId,
             'role' => 'assistant',
             'conteudo' => $assistantText,
             'meta' => $response['meta'] ?? null,
