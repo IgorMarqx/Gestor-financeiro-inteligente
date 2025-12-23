@@ -14,6 +14,7 @@ class Gasto extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'nome',
         'valor',
         'data',
