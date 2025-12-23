@@ -15,9 +15,10 @@ class GastosRecorrentesController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
         $perPage = (int) $request->query('per_page', 15);
 
-        $paginator = $this->service->paginate($userId, $perPage);
+        $paginator = $this->service->paginate($userId, $perPage, $familiaId);
 
         return $this->apiSuccess([
             'itens' => $paginator->items(),
@@ -33,7 +34,8 @@ class GastosRecorrentesController extends ApiController
     public function store(StoreGastoRecorrenteRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->create($userId, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->create($userId, $request->validated(), $familiaId);
 
         return $this->apiSuccess($model, 'Recorrência criada com sucesso.', 201);
     }
@@ -41,7 +43,8 @@ class GastosRecorrentesController extends ApiController
     public function update(UpdateGastoRecorrenteRequest $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->update($userId, $id, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->update($userId, $id, $request->validated(), $familiaId);
         if (! $model) return $this->apiError('Recorrência não encontrada.', null, 404);
 
         return $this->apiSuccess($model, 'Recorrência atualizada com sucesso.');
@@ -50,7 +53,10 @@ class GastosRecorrentesController extends ApiController
     public function destroy(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        if (! $this->service->delete($userId, $id)) return $this->apiError('Recorrência não encontrada.', null, 404);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        if (! $this->service->delete($userId, $id, $familiaId)) {
+            return $this->apiError('Recorrência não encontrada.', null, 404);
+        }
 
         return $this->apiSuccess(null, 'Recorrência removida com sucesso.');
     }
@@ -58,7 +64,8 @@ class GastosRecorrentesController extends ApiController
     public function pausar(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->setAtivo($userId, $id, false);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->setAtivo($userId, $id, false, $familiaId);
         if (! $model) return $this->apiError('Recorrência não encontrada.', null, 404);
 
         return $this->apiSuccess($model, 'Recorrência pausada.');
@@ -67,7 +74,8 @@ class GastosRecorrentesController extends ApiController
     public function ativar(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->setAtivo($userId, $id, true);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->setAtivo($userId, $id, true, $familiaId);
         if (! $model) return $this->apiError('Recorrência não encontrada.', null, 404);
 
         return $this->apiSuccess($model, 'Recorrência ativada.');
@@ -76,7 +84,8 @@ class GastosRecorrentesController extends ApiController
     public function gerarLancamentos(Request $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $result = $this->service->gerarLancamentos($userId);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $result = $this->service->gerarLancamentos($userId, null, $familiaId);
 
         return $this->apiSuccess($result, 'Geração executada.');
     }
