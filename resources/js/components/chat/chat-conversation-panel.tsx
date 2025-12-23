@@ -1,5 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import { type ApiChat } from '@/types/ApiChat';
+import { ChatMessageContent } from '@/components/chat/chat-message-utils';
+import { useEffect, useRef } from 'react';
 
 export type ChatUiMessage = {
     id: number | string;
@@ -39,6 +41,19 @@ export function ChatConversationPanel({
     onSend,
     onSendFromEnter,
 }: Props) {
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!scrollRef.current) return;
+        const prefersReducedMotion =
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        scrollRef.current.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        });
+    }, [activeChatId, messages.length]);
+
     return (
         <section className="flex min-w-0 flex-1 flex-col">
             <div className="border-b bg-muted/30 px-4 py-3">
@@ -58,7 +73,7 @@ export function ChatConversationPanel({
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-4">
+            <div ref={scrollRef} className="flex-1 overflow-auto p-4">
                 <div className="mx-auto w-full max-w-2xl space-y-4">
                     {activeChatId == null ? (
                         <div className="rounded-xl border bg-muted/10 p-4 text-sm text-muted-foreground">
@@ -100,7 +115,7 @@ export function ChatConversationPanel({
                                             : 'rounded-2xl rounded-tl-md border bg-card',
                                     ].join(' ')}
                                 >
-                                    {m.isTyping ? <TypingDots /> : m.conteudo}
+                                    {m.isTyping ? <TypingDots /> : <ChatMessageContent content={m.conteudo} />}
                                 </div>
                             </div>
                         );
