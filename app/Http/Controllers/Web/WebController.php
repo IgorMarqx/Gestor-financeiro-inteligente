@@ -27,4 +27,9 @@ class WebController extends Controller
     {
         return Inertia::render('chat/index');
     }
+
+    public function familiaIndex()
+    {
+        return Inertia::render('familia/index');
+    }
 }
