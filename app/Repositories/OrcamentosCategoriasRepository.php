@@ -3,36 +3,45 @@
 namespace App\Repositories;
 
 use App\Models\OrcamentoCategoria;
+use App\Support\FamiliaScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class OrcamentosCategoriasRepository
 {
-    public function paginateByUser(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function paginateByUser(int $userId, ?int $familiaId = null, int $perPage = 15): LengthAwarePaginator
     {
-        return OrcamentoCategoria::query()
-            ->with(['categoria:id,nome'])
-            ->where('usuario_id', $userId)
+        $builder = OrcamentoCategoria::query()->with(['categoria:id,nome']);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderByDesc('mes')
             ->orderByDesc('id')
             ->paginate($perPage);
     }
 
-    public function findByIdForUser(int $id, int $userId): ?OrcamentoCategoria
+    public function findByIdForUser(int $id, int $userId, ?int $familiaId = null): ?OrcamentoCategoria
     {
-        return OrcamentoCategoria::query()
-            ->where('id', $id)
-            ->where('usuario_id', $userId)
-            ->first();
+        $builder = OrcamentoCategoria::query()->where('id', $id);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 
-    public function findByUserCategoriaMes(int $userId, int $categoriaId, string $mes): ?OrcamentoCategoria
+    public function findByUserCategoriaMes(
+        int $userId,
+        ?int $familiaId,
+        int $categoriaId,
+        string $mes
+    ): ?OrcamentoCategoria
     {
-        return OrcamentoCategoria::query()
-            ->where('usuario_id', $userId)
+        $builder = OrcamentoCategoria::query()
             ->where('categoria_gasto_id', $categoriaId)
-            ->where('mes', $mes)
-            ->first();
+            ->where('mes', $mes);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 
     /**
@@ -61,13 +70,14 @@ class OrcamentosCategoriasRepository
     /**
      * @return Collection<int, OrcamentoCategoria>
      */
-    public function listByUserAndMes(int $userId, string $mes): Collection
+    public function listByUserAndMes(int $userId, ?int $familiaId, string $mes): Collection
     {
-        return OrcamentoCategoria::query()
+        $builder = OrcamentoCategoria::query()
             ->with(['categoria:id,nome'])
-            ->where('usuario_id', $userId)
-            ->where('mes', $mes)
-            ->get();
+            ->where('mes', $mes);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->get();
     }
 }
-
