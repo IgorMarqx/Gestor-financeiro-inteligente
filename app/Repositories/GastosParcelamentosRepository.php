@@ -3,26 +3,28 @@
 namespace App\Repositories;
 
 use App\Models\GastoParcelamento;
+use App\Support\FamiliaScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class GastosParcelamentosRepository
 {
-    public function paginateByUser(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function paginateByUser(int $userId, ?int $familiaId = null, int $perPage = 15): LengthAwarePaginator
     {
-        return GastoParcelamento::query()
-            ->with(['categoria:id,nome'])
-            ->where('usuario_id', $userId)
+        $builder = GastoParcelamento::query()->with(['categoria:id,nome']);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderByDesc('ativo')
             ->orderByDesc('id')
             ->paginate($perPage);
     }
 
-    public function findByIdForUser(int $id, int $userId): ?GastoParcelamento
+    public function findByIdForUser(int $id, int $userId, ?int $familiaId = null): ?GastoParcelamento
     {
-        return GastoParcelamento::query()
-            ->where('id', $id)
-            ->where('usuario_id', $userId)
-            ->first();
+        $builder = GastoParcelamento::query()->where('id', $id);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 
     /**
@@ -48,4 +50,3 @@ class GastosParcelamentosRepository
         $model->delete();
     }
 }
-
