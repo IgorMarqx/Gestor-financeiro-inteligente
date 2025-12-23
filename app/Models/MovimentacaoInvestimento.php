@@ -14,6 +14,7 @@ class MovimentacaoInvestimento extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'carteira_investimentos_id',
         'ativo_id',
         'tipo',
@@ -34,4 +35,3 @@ class MovimentacaoInvestimento extends Model
         return $this->belongsTo(Ativo::class, 'ativo_id');
     }
 }
-
