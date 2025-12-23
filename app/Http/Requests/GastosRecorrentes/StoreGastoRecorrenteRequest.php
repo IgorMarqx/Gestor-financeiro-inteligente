@@ -15,12 +15,19 @@ class StoreGastoRecorrenteRequest extends FormRequest
     public function rules(): array
     {
         $userId = (int) ($this->user()?->id ?? 0);
+        $familiaId = $this->user()?->familiaVinculadaId();
 
         return [
             'categoria_gasto_id' => [
                 'required',
                 'integer',
-                Rule::exists('categorias_gastos', 'id')->where('usuario_id', $userId),
+                Rule::exists('categorias_gastos', 'id')->where(function ($query) use ($userId, $familiaId) {
+                    if ($familiaId !== null) {
+                        $query->where('familia_id', $familiaId);
+                    } else {
+                        $query->where('usuario_id', $userId);
+                    }
+                }),
             ],
             'nome' => ['required', 'string', 'max:100'],
             'descricao' => ['nullable', 'string'],
@@ -34,4 +41,3 @@ class StoreGastoRecorrenteRequest extends FormRequest
         ];
     }
 }
-
