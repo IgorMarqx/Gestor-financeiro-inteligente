@@ -3,27 +3,29 @@
 namespace App\Repositories;
 
 use App\Models\GastoRecorrente;
+use App\Support\FamiliaScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class GastosRecorrentesRepository
 {
-    public function paginateByUser(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function paginateByUser(int $userId, ?int $familiaId = null, int $perPage = 15): LengthAwarePaginator
     {
-        return GastoRecorrente::query()
-            ->with(['categoria:id,nome'])
-            ->where('usuario_id', $userId)
+        $builder = GastoRecorrente::query()->with(['categoria:id,nome']);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderByDesc('ativo')
             ->orderBy('proxima_data')
             ->paginate($perPage);
     }
 
-    public function findByIdForUser(int $id, int $userId): ?GastoRecorrente
+    public function findByIdForUser(int $id, int $userId, ?int $familiaId = null): ?GastoRecorrente
     {
-        return GastoRecorrente::query()
-            ->where('id', $id)
-            ->where('usuario_id', $userId)
-            ->first();
+        $builder = GastoRecorrente::query()->where('id', $id);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 
     /**
@@ -52,14 +54,16 @@ class GastosRecorrentesRepository
     /**
      * @return Collection<int, GastoRecorrente>
      */
-    public function listDueForGeneration(int $userId, string $today): Collection
+    public function listDueForGeneration(int $userId, ?int $familiaId, string $today): Collection
     {
-        return GastoRecorrente::query()
-            ->where('usuario_id', $userId)
+        $builder = GastoRecorrente::query()
             ->where('ativo', 1)
-            ->whereDate('proxima_data', '<=', $today)
+            ->whereDate('proxima_data', '<=', $today);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderBy('proxima_data')
             ->get();
     }
 }
-
