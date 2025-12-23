@@ -14,6 +14,7 @@ class Transacao extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'tipo',
         'valor',
         'data',
@@ -38,4 +39,3 @@ class Transacao extends Model
         return $this->belongsTo(Conta::class, 'conta_destino_id');
     }
 }
-
