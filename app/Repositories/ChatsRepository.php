@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Chat;
+use App\Support\FamiliaScope;
 use Illuminate\Support\Collection;
 
 class ChatsRepository
@@ -10,10 +11,12 @@ class ChatsRepository
     /**
      * @return Collection<int, Chat>
      */
-    public function listByUser(int $userId): Collection
+    public function listByUser(int $userId, ?int $familiaId = null): Collection
     {
-        return Chat::query()
-            ->where('usuario_id', $userId)
+        $builder = Chat::query();
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->get();
@@ -27,12 +30,12 @@ class ChatsRepository
         return Chat::query()->create($data);
     }
 
-    public function findByIdForUser(int $chatId, int $userId): ?Chat
+    public function findByIdForUser(int $chatId, int $userId, ?int $familiaId = null): ?Chat
     {
-        return Chat::query()
-            ->where('id', $chatId)
-            ->where('usuario_id', $userId)
-            ->first();
+        $builder = Chat::query()->where('id', $chatId);
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 
     /**
