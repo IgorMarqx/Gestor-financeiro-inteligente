@@ -13,6 +13,7 @@ class Conta extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'nome',
         'tipo',
         'saldo_inicial',
@@ -22,4 +23,3 @@ class Conta extends Model
         'saldo_inicial' => 'decimal:2',
     ];
 }
-
