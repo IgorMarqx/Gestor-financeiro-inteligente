@@ -6,6 +6,7 @@ use App\Models\Gasto;
 use App\Models\GastoRecorrente;
 use App\Repositories\GastosRecorrentesRepository;
 use App\Repositories\GastosRepository;
+use App\Support\FamiliaScope;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -17,18 +18,22 @@ class GastosRecorrentesService
         private readonly GastosRepository $gastos,
     ) {}
 
-    public function paginate(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $userId, int $perPage = 15, ?int $familiaId = null): LengthAwarePaginator
     {
-        return $this->recorrentes->paginateByUser($userId, $perPage);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        return $this->recorrentes->paginateByUser($userId, $familiaId, $perPage);
     }
 
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function create(int $userId, array $payload): GastoRecorrente
+    public function create(int $userId, array $payload, ?int $familiaId = null): GastoRecorrente
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+
         return $this->recorrentes->create([
             'usuario_id' => $userId,
+            'familia_id' => $familiaId,
             'categoria_gasto_id' => (int) $payload['categoria_gasto_id'],
             'nome' => (string) $payload['nome'],
             'descricao' => $payload['descricao'] ?? null,
@@ -45,9 +50,10 @@ class GastosRecorrentesService
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function update(int $userId, int $id, array $payload): ?GastoRecorrente
+    public function update(int $userId, int $id, array $payload, ?int $familiaId = null): ?GastoRecorrente
     {
-        $model = $this->recorrentes->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->recorrentes->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return null;
 
         return $this->recorrentes->update($model, [
@@ -64,17 +70,19 @@ class GastosRecorrentesService
         ])->load('categoria:id,nome');
     }
 
-    public function delete(int $userId, int $id): bool
+    public function delete(int $userId, int $id, ?int $familiaId = null): bool
     {
-        $model = $this->recorrentes->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->recorrentes->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return false;
         $this->recorrentes->delete($model);
         return true;
     }
 
-    public function setAtivo(int $userId, int $id, bool $ativo): ?GastoRecorrente
+    public function setAtivo(int $userId, int $id, bool $ativo, ?int $familiaId = null): ?GastoRecorrente
     {
-        $model = $this->recorrentes->findByIdForUser($id, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $model = $this->recorrentes->findByIdForUser($id, $userId, $familiaId);
         if (! $model) return null;
 
         return $this->recorrentes->update($model, ['ativo' => $ativo])->load('categoria:id,nome');
@@ -84,10 +92,11 @@ class GastosRecorrentesService
      * Gera lançamentos vencidos e avança `proxima_data`.
      * @return array{gerados:int}
      */
-    public function gerarLancamentos(int $userId, ?string $today = null): array
+    public function gerarLancamentos(int $userId, ?string $today = null, ?int $familiaId = null): array
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $hoje = $today ? Carbon::parse($today) : Carbon::today();
-        $due = $this->recorrentes->listDueForGeneration($userId, $hoje->toDateString());
+        $due = $this->recorrentes->listDueForGeneration($userId, $familiaId, $hoje->toDateString());
 
         $gerados = 0;
 
@@ -98,6 +107,7 @@ class GastosRecorrentesService
                 while ($proxima->lessThanOrEqualTo($hoje)) {
                     $gasto = $this->gastos->create([
                         'usuario_id' => (int) $rec->usuario_id,
+                        'familia_id' => $familiaId,
                         'categoria_gasto_id' => (int) $rec->categoria_gasto_id,
                         'nome' => (string) $rec->nome,
                         'descricao' => $rec->descricao,
@@ -131,4 +141,3 @@ class GastosRecorrentesService
         return $next->setDay($targetDay);
     }
 }
-
