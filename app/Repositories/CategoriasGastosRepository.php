@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\CategoriaGasto;
+use App\Support\FamiliaScope;
 use Illuminate\Support\Collection;
 
 class CategoriasGastosRepository
@@ -18,11 +19,14 @@ class CategoriasGastosRepository
     /**
      * @return Collection<int, CategoriaGasto>
      */
-    public function listByUser(int $userId, string $query = ''): Collection
+    public function listByUser(int $userId, ?int $familiaId = null, string $query = ''): Collection
     {
-        return CategoriaGasto::query()
-            ->select(['id', 'nome'])
-            ->where('usuario_id', $userId)
+        $builder = CategoriaGasto::query()
+            ->select(['id', 'nome']);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->when($query !== '', function ($builder) use ($query) {
                 $builder->where('nome', 'like', '%'.$query.'%');
             })
@@ -30,12 +34,15 @@ class CategoriasGastosRepository
             ->get();
     }
 
-    public function findByIdForUser(int $categoriaId, int $userId): ?CategoriaGasto
+    public function findByIdForUser(int $categoriaId, int $userId, ?int $familiaId = null): ?CategoriaGasto
     {
-        return CategoriaGasto::query()
+        $builder = CategoriaGasto::query()
             ->select(['id', 'nome'])
-            ->where('id', $categoriaId)
-            ->where('usuario_id', $userId)
+            ->where('id', $categoriaId);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->first();
     }
 
