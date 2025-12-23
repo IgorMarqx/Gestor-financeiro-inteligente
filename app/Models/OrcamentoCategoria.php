@@ -14,6 +14,7 @@ class OrcamentoCategoria extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'categoria_gasto_id',
         'mes',
         'limite',
@@ -32,4 +33,3 @@ class OrcamentoCategoria extends Model
         return $this->belongsTo(CategoriaGasto::class, 'categoria_gasto_id');
     }
 }
-
