@@ -14,6 +14,7 @@ class Receita extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'nome',
         'valor',
         'data',
@@ -31,4 +32,3 @@ class Receita extends Model
         return $this->belongsTo(Conta::class, 'conta_id');
     }
 }
-
