@@ -15,8 +15,9 @@ class GastosParcelamentosController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
         $perPage = (int) $request->query('per_page', 15);
-        $paginator = $this->service->paginate($userId, $perPage);
+        $paginator = $this->service->paginate($userId, $perPage, $familiaId);
 
         return $this->apiSuccess([
             'itens' => $paginator->items(),
@@ -32,7 +33,8 @@ class GastosParcelamentosController extends ApiController
     public function store(StoreGastoParcelamentoRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->create($userId, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->create($userId, $request->validated(), $familiaId);
 
         return $this->apiSuccess($model, 'Parcelamento criado com sucesso.', 201);
     }
@@ -40,7 +42,8 @@ class GastosParcelamentosController extends ApiController
     public function update(UpdateGastoParcelamentoRequest $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->update($userId, $id, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->update($userId, $id, $request->validated(), $familiaId);
         if (! $model) return $this->apiError('Parcelamento não encontrado.', null, 404);
 
         return $this->apiSuccess($model, 'Parcelamento atualizado com sucesso.');
@@ -49,7 +52,10 @@ class GastosParcelamentosController extends ApiController
     public function destroy(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        if (! $this->service->delete($userId, $id)) return $this->apiError('Parcelamento não encontrado.', null, 404);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        if (! $this->service->delete($userId, $id, $familiaId)) {
+            return $this->apiError('Parcelamento não encontrado.', null, 404);
+        }
 
         return $this->apiSuccess(null, 'Parcelamento removido com sucesso.');
     }
@@ -57,7 +63,8 @@ class GastosParcelamentosController extends ApiController
     public function pausar(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->setAtivo($userId, $id, false);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->setAtivo($userId, $id, false, $familiaId);
         if (! $model) return $this->apiError('Parcelamento não encontrado.', null, 404);
 
         return $this->apiSuccess($model, 'Parcelamento pausado.');
@@ -66,7 +73,8 @@ class GastosParcelamentosController extends ApiController
     public function ativar(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $model = $this->service->setAtivo($userId, $id, true);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $model = $this->service->setAtivo($userId, $id, true, $familiaId);
         if (! $model) return $this->apiError('Parcelamento não encontrado.', null, 404);
 
         return $this->apiSuccess($model, 'Parcelamento ativado.');
@@ -75,7 +83,8 @@ class GastosParcelamentosController extends ApiController
     public function gerarParcelas(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $result = $this->service->gerarParcelas($userId, $id);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $result = $this->service->gerarParcelas($userId, $id, $familiaId);
         if ($result['criadas'] === 0 && $result['ja_existiam'] === false) {
             return $this->apiError('Parcelamento não encontrado.', null, 404);
         }
