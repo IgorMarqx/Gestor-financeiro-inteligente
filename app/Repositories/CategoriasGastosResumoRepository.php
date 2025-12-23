@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Support\FamiliaScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -11,14 +12,17 @@ class CategoriasGastosResumoRepository
     /**
      * @return Collection<int,array{categoria_gasto_id:int,total:string,quantidade:int,ultima_data:string|null}>
      */
-    public function gastosPorCategoria(int $userId, string $inicio, string $fim): Collection
+    public function gastosPorCategoria(int $userId, ?int $familiaId, string $inicio, string $fim): Collection
     {
+        $base = DB::table('gastos')
+            ->whereNull('gastos.deletado_em')
+            ->whereDate('gastos.data', '>=', $inicio)
+            ->whereDate('gastos.data', '<=', $fim);
+
+        $base = FamiliaScope::apply($base, $userId, $familiaId, 'gastos');
+
         return collect(
-            DB::table('gastos')
-                ->where('gastos.usuario_id', $userId)
-                ->whereNull('gastos.deletado_em')
-                ->whereDate('gastos.data', '>=', $inicio)
-                ->whereDate('gastos.data', '<=', $fim)
+            $base
                 ->groupBy('gastos.categoria_gasto_id')
                 ->orderByDesc(DB::raw('SUM(gastos.valor)'))
                 ->get([
@@ -37,27 +41,32 @@ class CategoriasGastosResumoRepository
         );
     }
 
-    public function totalPeriodo(int $userId, string $inicio, string $fim): string
+    public function totalPeriodo(int $userId, ?int $familiaId, string $inicio, string $fim): string
     {
-        return (string) (DB::table('gastos')
-            ->where('gastos.usuario_id', $userId)
+        $base = DB::table('gastos')
             ->whereNull('gastos.deletado_em')
             ->whereDate('gastos.data', '>=', $inicio)
-            ->whereDate('gastos.data', '<=', $fim)
-            ->sum('gastos.valor') ?? '0');
+            ->whereDate('gastos.data', '<=', $fim);
+
+        $base = FamiliaScope::apply($base, $userId, $familiaId, 'gastos');
+
+        return (string) ($base->sum('gastos.valor') ?? '0');
     }
 
     /**
      * @return Collection<int,array{categoria_gasto_id:int,media_por_gasto:string,maior_gasto:string}>
      */
-    public function metricasPorCategoria(int $userId, string $inicio, string $fim): Collection
+    public function metricasPorCategoria(int $userId, ?int $familiaId, string $inicio, string $fim): Collection
     {
+        $base = DB::table('gastos')
+            ->whereNull('gastos.deletado_em')
+            ->whereDate('gastos.data', '>=', $inicio)
+            ->whereDate('gastos.data', '<=', $fim);
+
+        $base = FamiliaScope::apply($base, $userId, $familiaId, 'gastos');
+
         return collect(
-            DB::table('gastos')
-                ->where('gastos.usuario_id', $userId)
-                ->whereNull('gastos.deletado_em')
-                ->whereDate('gastos.data', '>=', $inicio)
-                ->whereDate('gastos.data', '<=', $fim)
+            $base
                 ->groupBy('gastos.categoria_gasto_id')
                 ->get([
                     'gastos.categoria_gasto_id as categoria_gasto_id',
@@ -76,18 +85,27 @@ class CategoriasGastosResumoRepository
     /**
      * @return Collection<int,array{categoria_gasto_id:int,data:string,total:string}>
      */
-    public function serieDiariaPorCategoria(int $userId, string $inicio, string $fim, int $days = 30): Collection
+    public function serieDiariaPorCategoria(
+        int $userId,
+        ?int $familiaId,
+        string $inicio,
+        string $fim,
+        int $days = 30
+    ): Collection
     {
         $days = max(7, min(60, $days));
         $start = Carbon::createFromFormat('Y-m-d', $fim)->subDays($days - 1)->toDateString();
         $from = $inicio > $start ? $inicio : $start;
 
+        $base = DB::table('gastos')
+            ->whereNull('gastos.deletado_em')
+            ->whereDate('gastos.data', '>=', $from)
+            ->whereDate('gastos.data', '<=', $fim);
+
+        $base = FamiliaScope::apply($base, $userId, $familiaId, 'gastos');
+
         return collect(
-            DB::table('gastos')
-                ->where('gastos.usuario_id', $userId)
-                ->whereNull('gastos.deletado_em')
-                ->whereDate('gastos.data', '>=', $from)
-                ->whereDate('gastos.data', '<=', $fim)
+            $base
                 ->groupBy('gastos.categoria_gasto_id', 'gastos.data')
                 ->orderBy('gastos.data')
                 ->get([
