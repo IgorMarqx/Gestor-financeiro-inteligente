@@ -16,6 +16,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('gastos', [WebController::class, 'gastosIndex'])->name('gastos.index');
     Route::get('categorias', [WebController::class, 'categoriasIndex'])->name('categorias.index');
     Route::get('chat', [WebController::class, 'chatIndex'])->name('chat.index');
+    Route::get('familia', [WebController::class, 'familiaIndex'])->name('familia.index');
 });
 
 require __DIR__ . '/settings.php';
