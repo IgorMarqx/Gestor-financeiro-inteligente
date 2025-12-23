@@ -15,6 +15,7 @@ class GastoParcela extends Model
     protected $fillable = [
         'parcelamento_id',
         'usuario_id',
+        'familia_id',
         'numero_parcela',
         'valor',
         'vencimento',
@@ -38,4 +39,3 @@ class GastoParcela extends Model
         return $this->belongsTo(Gasto::class, 'gasto_id');
     }
 }
-
