@@ -11,6 +11,7 @@ class ChatMensagem extends Model
 
     protected $fillable = [
         'chat_id',
+        'familia_id',
         'role',
         'conteudo',
         'meta',
@@ -25,4 +26,3 @@ class ChatMensagem extends Model
         return $this->belongsTo(Chat::class, 'chat_id');
     }
 }
-
