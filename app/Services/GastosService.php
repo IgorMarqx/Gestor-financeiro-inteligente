@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Gasto;
 use App\Repositories\GastosRepository;
+use App\Support\FamiliaScope;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -23,10 +24,13 @@ class GastosService
      *   necessidade?:'ESSENCIAL'|'SUPERFLUO'|null,
      * }  $payload
      */
-    public function create(int $userId, array $payload): Gasto
+    public function create(int $userId, array $payload, ?int $familiaId = null): Gasto
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+
         return $this->gastos->create([
             'usuario_id' => $userId,
+            'familia_id' => $familiaId,
             'nome' => $payload['nome'],
             'valor' => $payload['valor'],
             'data' => $payload['data'],
@@ -41,9 +45,10 @@ class GastosService
     /**
      * @return Collection<int, Gasto>
      */
-    public function list(int $userId): Collection
+    public function list(int $userId, ?int $familiaId = null): Collection
     {
-        return $this->gastos->listByUser($userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        return $this->gastos->listByUser($userId, $familiaId);
     }
 
     /**
@@ -58,9 +63,10 @@ class GastosService
      *   necessidade?:'ESSENCIAL'|'SUPERFLUO'|null,
      * }  $payload
      */
-    public function update(int $userId, int $gastoId, array $payload): ?Gasto
+    public function update(int $userId, int $gastoId, array $payload, ?int $familiaId = null): ?Gasto
     {
-        $gasto = $this->gastos->findByIdForUser($gastoId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $gasto = $this->gastos->findByIdForUser($gastoId, $userId, $familiaId);
         if (! $gasto) return null;
 
         return $this->gastos
@@ -77,9 +83,10 @@ class GastosService
             ->load('categoria:id,nome');
     }
 
-    public function delete(int $userId, int $gastoId): bool
+    public function delete(int $userId, int $gastoId, ?int $familiaId = null): bool
     {
-        $gasto = $this->gastos->findByIdForUser($gastoId, $userId);
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+        $gasto = $this->gastos->findByIdForUser($gastoId, $userId, $familiaId);
         if (! $gasto) return false;
 
         $this->gastos->softDelete($gasto);
@@ -101,8 +108,9 @@ class GastosService
      *   per_page?:int|null,
      * } $filters
      */
-    public function listWithSummary(int $userId, array $filters): array
+    public function listWithSummary(int $userId, array $filters, ?int $familiaId = null): array
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $inicio = $filters['inicio'] ?? null;
         $fim = $filters['fim'] ?? null;
 
@@ -115,7 +123,7 @@ class GastosService
         $filters['inicio'] = $inicio;
         $filters['fim'] = $fim;
 
-        $result = $this->gastos->paginateWithSummary($userId, $filters);
+        $result = $this->gastos->paginateWithSummary($userId, $familiaId, $filters);
 
         return [
             'gastos' => $result['paginator']->items(),
@@ -134,14 +142,16 @@ class GastosService
     /**
      * @param  array{nome:string,valor:numeric-string|float|int,data:string,categoria_gasto_id:int}  $payload
      */
-    public function validar(int $userId, array $payload): array
+    public function validar(int $userId, array $payload, ?int $familiaId = null): array
     {
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
         $data = Carbon::parse($payload['data']);
         $inicio = $data->copy()->subDays(3)->toDateString();
         $fim = $data->copy()->addDays(3)->toDateString();
 
         $duplicados = $this->gastos->findPossibleDuplicates(
             userId: $userId,
+            familiaId: $familiaId,
             nome: $payload['nome'],
             valor: $payload['valor'],
             inicio: $inicio,
@@ -151,7 +161,13 @@ class GastosService
 
         $mesInicio = $data->copy()->startOfMonth()->toDateString();
         $mesFim = $data->copy()->endOfMonth()->toDateString();
-        $avg = $this->gastos->avgByCategoriaInMonth($userId, (int) $payload['categoria_gasto_id'], $mesInicio, $mesFim);
+        $avg = $this->gastos->avgByCategoriaInMonth(
+            $userId,
+            $familiaId,
+            (int) $payload['categoria_gasto_id'],
+            $mesInicio,
+            $mesFim,
+        );
 
         $valor = (float) $payload['valor'];
         $suspeito = $avg > 0 && $valor >= (3 * $avg);
