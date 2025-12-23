@@ -109,7 +109,7 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <div className="flex min-h-[72vh] flex-1 overflow-hidden rounded-xl border border-border/70 bg-background">
+                <div className="flex min-h-[82vh] max-h-[72vh] flex-1 overflow-hidden rounded-xl border border-border/70 bg-background">
                     <ChatSidebar
                         chats={chats}
                         activeChatId={activeChatId}
