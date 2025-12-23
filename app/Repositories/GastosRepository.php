@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Gasto;
+use App\Support\FamiliaScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -21,24 +22,29 @@ class GastosRepository
     /**
      * @return Collection<int, Gasto>
      */
-    public function listByUser(int $userId): Collection
+    public function listByUser(int $userId, ?int $familiaId = null): Collection
     {
-        return Gasto::query()
+        $builder = Gasto::query()
             ->with(['categoria:id,nome'])
-            ->where('usuario_id', $userId)
-            ->whereNull('deletado_em')
+            ->whereNull('deletado_em');
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder
             ->orderByDesc('data')
             ->orderByDesc('id')
             ->get();
     }
 
-    public function findByIdForUser(int $id, int $userId): ?Gasto
+    public function findByIdForUser(int $id, int $userId, ?int $familiaId = null): ?Gasto
     {
-        return Gasto::query()
+        $builder = Gasto::query()
             ->where('id', $id)
-            ->where('usuario_id', $userId)
-            ->whereNull('deletado_em')
-            ->first();
+            ->whereNull('deletado_em');
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId);
+
+        return $builder->first();
     }
 
     /**
@@ -82,16 +88,16 @@ class GastosRepository
      * } $filters
      * @return array{paginator:LengthAwarePaginator,total_periodo:string,totais_por_categoria:array<int,array{categoria_gasto_id:int,categoria_nome:string,total:string}>}
      */
-    public function paginateWithSummary(int $userId, array $filters): array
+    public function paginateWithSummary(int $userId, ?int $familiaId, array $filters): array
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         if ($perPage <= 0 || $perPage > 100) $perPage = 15;
 
         $base = Gasto::query()
             ->with(['categoria:id,nome'])
-            ->where('gastos.usuario_id', $userId)
             ->whereNull('gastos.deletado_em');
 
+        $base = FamiliaScope::apply($base, $userId, $familiaId, 'gastos');
         $base = $this->applyFilters($base, $filters, 'gastos');
 
         $orderBy = (string) ($filters['order_by'] ?? 'data');
@@ -108,9 +114,8 @@ class GastosRepository
 
         $paginator = $base->paginate($perPage);
 
-        $summaryQuery = Gasto::query()
-            ->where('gastos.usuario_id', $userId)
-            ->whereNull('gastos.deletado_em');
+        $summaryQuery = Gasto::query()->whereNull('gastos.deletado_em');
+        $summaryQuery = FamiliaScope::apply($summaryQuery, $userId, $familiaId, 'gastos');
         $summaryQuery = $this->applyFilters($summaryQuery, $filters, 'gastos');
 
         $totalPeriodo = (string) ($summaryQuery->clone()->sum('valor') ?? '0');
@@ -186,14 +191,21 @@ class GastosRepository
     /**
      * @return Collection<int, Gasto>
      */
-    public function findPossibleDuplicates(int $userId, string $nome, mixed $valor, string $inicio, string $fim, int $categoriaId): Collection
+    public function findPossibleDuplicates(
+        int $userId,
+        ?int $familiaId,
+        string $nome,
+        mixed $valor,
+        string $inicio,
+        string $fim,
+        int $categoriaId
+    ): Collection
     {
         $q = trim($nome);
         $needle = $q === '' ? '' : mb_substr($q, 0, 25);
 
-        return Gasto::query()
+        $builder = Gasto::query()
             ->with(['categoria:id,nome'])
-            ->where('gastos.usuario_id', $userId)
             ->whereNull('gastos.deletado_em')
             ->where('gastos.categoria_gasto_id', $categoriaId)
             ->where('gastos.valor', $valor)
@@ -202,33 +214,55 @@ class GastosRepository
             ->when($needle !== '', fn (Builder $b) => $b->where('nome', 'like', "%{$needle}%"))
             ->orderByDesc('data')
             ->limit(10)
-            ->get();
+            ;
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId, 'gastos');
+
+        return $builder->get();
     }
 
-    public function avgByCategoriaInMonth(int $userId, int $categoriaId, string $inicio, string $fim): float
+    public function avgByCategoriaInMonth(
+        int $userId,
+        ?int $familiaId,
+        int $categoriaId,
+        string $inicio,
+        string $fim
+    ): float
     {
-        return (float) Gasto::query()
-            ->where('gastos.usuario_id', $userId)
+        $builder = Gasto::query()
             ->whereNull('gastos.deletado_em')
             ->where('gastos.categoria_gasto_id', $categoriaId)
             ->whereDate('gastos.data', '>=', $inicio)
-            ->whereDate('gastos.data', '<=', $fim)
-            ->avg('gastos.valor');
+            ->whereDate('gastos.data', '<=', $fim);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId, 'gastos');
+
+        return (float) $builder->avg('gastos.valor');
     }
 
     /**
      * @return Collection<int, array{id:int,nome:string,valor:string,data:string}>
      */
-    public function listResumoByUserCategoriaPeriodo(int $userId, int $categoriaId, string $inicio, string $fim, int $limit = 50): Collection
+    public function listResumoByUserCategoriaPeriodo(
+        int $userId,
+        ?int $familiaId,
+        int $categoriaId,
+        string $inicio,
+        string $fim,
+        int $limit = 50
+    ): Collection
     {
         $limit = max(1, min(100, $limit));
 
-        return Gasto::query()
-            ->where('gastos.usuario_id', $userId)
+        $builder = Gasto::query()
             ->whereNull('gastos.deletado_em')
             ->where('gastos.categoria_gasto_id', $categoriaId)
             ->whereDate('gastos.data', '>=', $inicio)
-            ->whereDate('gastos.data', '<=', $fim)
+            ->whereDate('gastos.data', '<=', $fim);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId, 'gastos');
+
+        return $builder
             ->orderByDesc('gastos.data')
             ->orderByDesc('gastos.id')
             ->limit($limit)
@@ -241,12 +275,14 @@ class GastosRepository
             ]);
     }
 
-    public function countByUserCategoria(int $userId, int $categoriaId): int
+    public function countByUserCategoria(int $userId, ?int $familiaId, int $categoriaId): int
     {
-        return (int) Gasto::query()
-            ->where('gastos.usuario_id', $userId)
+        $builder = Gasto::query()
             ->whereNull('gastos.deletado_em')
-            ->where('gastos.categoria_gasto_id', $categoriaId)
-            ->count();
+            ->where('gastos.categoria_gasto_id', $categoriaId);
+
+        $builder = FamiliaScope::apply($builder, $userId, $familiaId, 'gastos');
+
+        return (int) $builder->count();
     }
 }
