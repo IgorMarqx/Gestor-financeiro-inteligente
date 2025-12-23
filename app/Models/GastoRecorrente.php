@@ -14,6 +14,7 @@ class GastoRecorrente extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'categoria_gasto_id',
         'nome',
         'descricao',
@@ -38,4 +39,3 @@ class GastoRecorrente extends Model
         return $this->belongsTo(CategoriaGasto::class, 'categoria_gasto_id');
     }
 }
-
