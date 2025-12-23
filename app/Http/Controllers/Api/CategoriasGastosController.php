@@ -25,10 +25,11 @@ class CategoriasGastosController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
         $query = (string) $request->query('q', '');
 
         return $this->apiSuccess(
-            data: $this->categoriasGastosService->list($userId, $query),
+            data: $this->categoriasGastosService->list($userId, $query, $familiaId),
             message: 'OK',
         );
     }
@@ -36,7 +37,8 @@ class CategoriasGastosController extends ApiController
     public function store(StoreCategoriaGastoRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $categoria = $this->categoriasGastosService->create($userId, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $categoria = $this->categoriasGastosService->create($userId, $request->validated(), $familiaId);
 
         return $this->apiSuccess($categoria, 'Categoria criada com sucesso.', 201);
     }
@@ -44,7 +46,13 @@ class CategoriasGastosController extends ApiController
     public function update(UpdateCategoriaGastoRequest $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $categoria = $this->categoriasGastosService->update($userId, $id, $request->validated());
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $categoria = $this->categoriasGastosService->update(
+            $userId,
+            $id,
+            $request->validated(),
+            $familiaId,
+        );
         if (! $categoria) {
             return $this->apiError('Categoria não encontrada.', 404);
         }
@@ -55,7 +63,8 @@ class CategoriasGastosController extends ApiController
     public function destroy(Request $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
-        $ok = $this->categoriasGastosService->delete($userId, $id);
+        $familiaId = $request->user()?->familiaVinculadaId();
+        $ok = $this->categoriasGastosService->delete($userId, $id, $familiaId);
         if (! $ok) {
             return $this->apiError('Categoria não encontrada.', 404);
         }
@@ -66,6 +75,7 @@ class CategoriasGastosController extends ApiController
     public function resumo(ResumoCategoriasGastosRequest $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
         $mes = $request->validated('mes');
         $inicio = $request->validated('inicio');
         $fim = $request->validated('fim');
@@ -75,7 +85,7 @@ class CategoriasGastosController extends ApiController
             : $this->periodoFactory->fromInicioFim($inicio ? (string) $inicio : null, $fim ? (string) $fim : null);
 
         return $this->apiSuccess(
-            data: $this->categoriasGastosResumoService->getResumo($userId, $periodo),
+            data: $this->categoriasGastosResumoService->getResumo($userId, $periodo, $familiaId),
             message: 'OK',
         );
     }
@@ -83,6 +93,7 @@ class CategoriasGastosController extends ApiController
     public function gastos(ListarGastosCategoriaRequest $request, int $id): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $familiaId = $request->user()?->familiaVinculadaId();
         $mes = $request->validated('mes');
         $inicio = $request->validated('inicio');
         $fim = $request->validated('fim');
@@ -93,7 +104,13 @@ class CategoriasGastosController extends ApiController
             : $this->periodoFactory->fromInicioFim($inicio ? (string) $inicio : null, $fim ? (string) $fim : null);
 
         return $this->apiSuccess(
-            data: $this->categoriasGastosDetalhesService->gastosPorCategoria($userId, $id, $periodo, $limit),
+            data: $this->categoriasGastosDetalhesService->gastosPorCategoria(
+                $userId,
+                $id,
+                $periodo,
+                $limit,
+                $familiaId,
+            ),
             message: 'OK',
         );
     }
