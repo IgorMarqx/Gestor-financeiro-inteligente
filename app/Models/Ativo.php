@@ -13,9 +13,9 @@ class Ativo extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'nome',
         'tipo',
         'ticker',
     ];
 }
-
