@@ -6,6 +6,7 @@ use App\Repositories\CategoriasGastosRepository;
 use App\Repositories\CategoriasGastosResumoRepository;
 use App\Repositories\OrcamentosCategoriasRepository;
 use App\Services\CategoriasGastos\Periodos\CategoriasPeriodo;
+use App\Support\FamiliaScope;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -39,26 +40,34 @@ class CategoriasGastosResumoService
      *   }>
      * }
      */
-    public function getResumo(int $userId, CategoriasPeriodo $periodo): array
+    public function getResumo(int $userId, CategoriasPeriodo $periodo, ?int $familiaId = null): array
     {
-        $categorias = $this->categorias->listByUser($userId, '');
+        $familiaId = FamiliaScope::resolveFamiliaId($userId, $familiaId);
+
+        $categorias = $this->categorias->listByUser($userId, $familiaId, '');
         $gastosByCategoria = $this->resumo
-            ->gastosPorCategoria($userId, $periodo->inicio, $periodo->fim)
+            ->gastosPorCategoria($userId, $familiaId, $periodo->inicio, $periodo->fim)
             ->keyBy('categoria_gasto_id');
 
         $metricasByCategoria = $this->resumo
-            ->metricasPorCategoria($userId, $periodo->inicio, $periodo->fim)
+            ->metricasPorCategoria($userId, $familiaId, $periodo->inicio, $periodo->fim)
             ->keyBy('categoria_gasto_id');
 
-        $serieRows = $this->resumo->serieDiariaPorCategoria($userId, $periodo->inicio, $periodo->fim, 30);
+        $serieRows = $this->resumo->serieDiariaPorCategoria(
+            $userId,
+            $familiaId,
+            $periodo->inicio,
+            $periodo->fim,
+            30,
+        );
 
         $orcamentosByCategoria = $periodo->mes
             ? $this->orcamentos
-                ->listByUserAndMes($userId, $periodo->mes)
+                ->listByUserAndMes($userId, $familiaId, $periodo->mes)
                 ->keyBy('categoria_gasto_id')
             : collect();
 
-        $totalPeriodo = $this->resumo->totalPeriodo($userId, $periodo->inicio, $periodo->fim);
+        $totalPeriodo = $this->resumo->totalPeriodo($userId, $familiaId, $periodo->inicio, $periodo->fim);
         $totalPeriodoFloat = (float) $totalPeriodo;
 
         $diasNoPeriodo = Carbon::createFromFormat('Y-m-d', $periodo->inicio)
