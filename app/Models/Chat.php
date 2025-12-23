@@ -12,6 +12,7 @@ class Chat extends Model
 
     protected $fillable = [
         'usuario_id',
+        'familia_id',
         'titulo',
         'contexto',
     ];
@@ -30,4 +31,3 @@ class Chat extends Model
         return $this->hasMany(ChatMensagem::class, 'chat_id');
     }
 }
-
